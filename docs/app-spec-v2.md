@@ -304,32 +304,168 @@ MapLibre GL JS with a **PMTiles** basemap: one Protomaps extract for Bulgaria (o
 
 ---
 
-## 10. Storage and backup — ⚠ CHANGED FROM YOUR CHOICE
+## 10. Storage and backup — ⚠ CHANGED FROM v2
 
-You chose *local-first with backup to a Google Drive folder*. The destination is right. **The mechanism you'd expect — the app talking to the Drive API by itself, nightly — cannot work, and this was v1's fatal flaw.**
+You chose *local-first, backed up to a folder that syncs*. v2 kept Dexie as the primary store and produced a backup zip via share-sheet — one level of indirection too many. **The folder itself is the store.** IndexedDB is a rebuildable index.
 
-Why, concretely:
-- A browser-only client (no backend) gets **access tokens with ~1 h lifetime and no refresh token**. There is no `offline` grant without a confidential client. Every backup therefore needs a live, foregrounded, recently-authorised session.
-- A PWA has **no background execution**. Periodic Background Sync is Chromium-only, needs install plus engagement heuristics, has a 12 h floor, fires at the browser's discretion, and cannot survive a multi-hundred-megabyte upload in a service worker that is killed in seconds.
-- So "nightly, automatic, on Wi-Fi" degrades to "whenever you happen to open the app and leave it in the foreground" — and it degrades *silently*. The archive would look backed up and not be.
-- Meanwhile `navigator.storage.persist()` on Android is granted or denied by heuristic with **no prompt**, and even when granted protects against nothing that matters: "clear site data", Android's storage manager, and uninstalling the PWA all wipe the origin **entirely** — not the oldest rows, everything.
+This is the design §13's baseline argued for and §10 v2 half-arrived at. Committing to it removes the OAuth subsystem, the periodic-backup mechanics, the `persist()` heuristic, most of the eviction logic, and the custom restore path — all of which existed to work around not owning a folder.
 
-**What replaces it, in order of preference:**
+### 10.1 Why the folder, not the database
 
-**(a) Share-sheet export — the default.** One tap produces `hydrolog-backup-YYYY-MM-DD.zip` and hands it to `navigator.share({files:[...]})`. Android's share sheet offers Drive, Telegram, Gmail, anything installed. Zero OAuth, zero client ID, zero verification, zero token expiry, ~20 lines instead of ~400. **It lands in exactly the Google Drive folder you wanted — a human tap puts it there.**
+Keeping data in Dexie has three problems v2 did not fully own:
 
-**(b) Sync-folder handle — the automation.** A persistent File System Access directory handle pointing at a folder that Drive-for-Desktop, Syncthing or FolderSync already mirrors. The app writes the zip on close and on demand; the OS app does the network, correctly, in the background, with retries and versioning. This is the only honest "automatic" in a no-backend design, and it is now available on Android too.
+- **The archive's readability is contingent on the app still working.** In 2031, opening a HydroLog folder must not require compiling a 2026 PWA. S6 as v2 wrote it depends on the export path being run — no export, no re-derivation.
+- **Restore is a custom import path** and therefore a place where the newer-wins-by-ULID bug (v2 §10, correctly identified) can silently destroy edits. A bug in a code path that only runs during disaster is the worst kind.
+- **The §13 baseline is not a drop-out**, it is a full data migration from the app. That kills the strong version of §13's recommendation ("run the baseline for the next 5–10 sites in parallel").
 
-**(c) Drive API — Phase 4, manual button only, `drive.file` scope.** Never `drive` or `drive.readonly`: those are *restricted* scopes and drag in an annual paid third-party security assessment. Not worth it for one user.
+Making the folder the source of truth fixes all three at once.
 
-**The mechanism that actually delivers S5 is the nag, not the automation.** Home screen shows hours since last backup; amber at 12 h, red and modal at 24 h — matching S5's "at most one day", not v1's contradictory 48 h. A survey cannot be finalised while the last backup is older than the survey.
+### 10.2 The folder is the truth
 
-**Measured storage budget** (§14 T7): structured data for 200 sites × 2 surveys is **~9 MB** — nothing. Photos at 10 per survey are **~1.4 GB** — which is the real problem, and the one nobody flags until the phone is full. Therefore:
-- Thumbnails and metadata stay on the device permanently.
-- Full-resolution originals are **offloaded on backup** and may be evicted locally once confirmed written, with the record keeping the file reference and hash.
-- `navigator.storage.estimate()` runs before every photo save; at 90% quota the app refuses gracefully rather than failing a write mid-transaction.
+The user picks a folder once on first run (`HydroLog/`). Every survey, line, reading, media file, export and interpretation lives inside it as a plain file at a stable path.
 
-**Restore** resolves conflicts by `updatedAt` — which is why §4.1 adds it. v1's "newest-wins by ULID" compared *creation* time, so restoring an older backup would have silently destroyed newer edits. A restore designed to recover data must not be able to lose it.
+```
+HydroLog/
+  _schema.json                          # {version: "hydrolog-v1"}
+  channelSets/
+    tc300_linear-nominal_v1.json        # frozen per §4.9
+  clients/
+    ivanov-family.json
+  sites/
+    BG-SOF-0043_Dolna-Banya_Ivanov/
+      site.json                         # §4.2
+      regulatory.json                   # §4.3
+      surveys/
+        2026-09-13T10-20_s01/
+          survey.json                   # §4.4
+          lines/
+            L1/
+              line.json                 # §4.5 — the field work, always exists
+              vertices.geojson          # polyline, §5.3
+              anchor.jpg                # point-1 photo, mandatory §5.4
+              readings.csv              # points × channels × passes
+              transform-log.json        # §5.4 flips, if any
+              noise-zones.json          # §4.8
+              device-files/             # §7.3 verbatim; may be empty if data-pending
+                L1_original/...
+                sha256.txt
+              media/
+                p05_obstacle.jpg
+                voice-01.m4a
+                _thumbs/                # regenerable
+          interpretation.json           # §4.11
+          intersections.json            # §4.10
+          disclaimer_bg-2026-03.txt     # frozen at issue
+      outcomes/
+        2027-04-15_drill-01.json        # may arrive years later
+      exports/
+        2026-09-13_client.pdf
+        2026-09-13_client.pdf.sha256
+        2026-09-13.kmz
+        2026-09-13.geojson
+        2026-09-13_certificate-bundle.json.sig
+  _tombstones/                          # soft-deletes per §4.1
+```
+
+Everything is either JSON, GeoJSON, CSV, or a media file at its natural extension. A 2031 laptop with QGIS and a text editor can open all of it.
+
+### 10.3 IndexedDB is a rebuildable cache
+
+The app keeps an index in IndexedDB — parsed site/survey/line records, media hashes, search terms, thumbnails. **Deleting the cache is a supported operation.** On next cold start the app walks the tree and rebuilds it.
+
+Invariant: **no fact exists only in the cache.** Every write goes to the folder first; only then is the cache updated. If the app crashes mid-write, the folder holds either the old or the new file (§10.5), and the cache re-syncs on next start.
+
+Rebuild cost at target scale (200 sites × 2 surveys × ~15 files): ~6 000 stat calls, ~1–2 s on the phone, sub-second on the laptop. Incremental updates keyed on directory mtime after that.
+
+### 10.4 The API — File System Access
+
+Directory handle picked once, persisted across sessions via IndexedDB.
+
+| Platform | Support | Notes |
+|---|---|---|
+| Chrome desktop (Win/Mac/Linux) | Full since 2020 | Primary target |
+| Chrome Android | Directory picking since M132 (Jan 2025) — the same version §3 already relies on | Persistent handle survives PWA restarts |
+| Firefox / Safari desktop | No FSA | Out of scope — HydroLog is Chrome-family only |
+| iOS Safari | No FSA | Out of scope — spec is Android + desktop only |
+
+If a persisted handle is unavailable (fresh install, revoked permission, browser reset), the app prompts to re-select the folder. This is a one-tap re-pick, not a data event — the contents are unchanged.
+
+### 10.5 Atomic writes, write-then-rename
+
+All metadata writes use the standard atomic pattern: write `x.json.tmp`, `fsync`, rename to `x.json`. FSA's `createWritable` + atomic `close()` on Chromium implements this.
+
+Multi-file update order is fixed:
+
+1. **Media blobs first** — content-addressed by SHA-256, so re-runs are idempotent.
+2. **Referring `line.json` / `interpretation.json`** next.
+3. **`survey.json` last** — it is the commit marker for a survey-level change.
+
+A crash between steps leaves the survey pointing at the previous consistent state; orphaned media (from step 1) are garbage-collected on next scan.
+
+### 10.6 Sync race with Drive-for-Desktop / Syncthing
+
+Two race modes matter:
+
+- **App reads while sync is writing.** Every file we care about has a hash recorded in the referring JSON. On mismatch, the app retries after a short delay before treating it as corruption.
+- **App writes while sync is reading.** Not a real problem — the rename in §10.5 is atomic at the filesystem level; the sync tool sees the old or the new file, never a torn one.
+
+Never edit HydroLog files from two devices simultaneously. This is policy, not a lock — HydroLog is single-user by design, and OS sync tools do not offer merge semantics.
+
+### 10.7 Photo pressure moves to the OS
+
+Drive-for-Desktop, OneDrive, and iCloud (via a companion Mac) all support **"available online only"** — the file exists in the listing but takes no local disk until opened. This replaces v2's app-managed eviction logic entirely.
+
+- Thumbnails (`_thumbs/`, 512 px, regenerable) stay pinned locally so gallery views work offline.
+- Originals default to online-only after Drive confirms upload. The app never deletes them; the OS does, and re-fetches on demand.
+- Voice notes and device-file blobs are small enough (< 5 MB typical) to keep locally by default.
+
+`navigator.storage.estimate()` still runs before large writes; at 90% quota the app refuses gracefully and asks the user to free space or extend cloud storage.
+
+### 10.8 Migrations
+
+Schema changes rewrite files in place. Before any migration runs:
+
+1. A snapshot copy of the folder is made at `HydroLog/_backup_pre_migration_YYYY-MM-DD-HHMM/` using native FSA copy.
+2. Migration walks the tree, rewrites each file to the new shape via write-then-rename.
+3. `_schema.json` is updated last, as the commit marker.
+
+Rollback is a directory copy back. Migrations are additive-only where possible; a destructive change requires an explicit user confirm and keeps the snapshot for 30 days minimum.
+
+### 10.9 Backup nag — now reads real state
+
+The Home screen nag is unchanged in intent but reads a truer signal: **hours since the folder last synced upstream**, not hours since the app last exported.
+
+Source of the signal, in preference order:
+
+1. **Drive-for-Desktop / OneDrive local status** where queryable.
+2. **Round-trip canary**: on each finalize the app writes a tiny `_sync_probe/YYYY-MM-DD-HHMM.txt`; a second read from a companion handle confirms round-trip. Timestamp of the last successful round-trip is the nag input.
+3. **Manual "I've verified backup"** button as last resort — resets the clock but requires an explicit tap.
+
+Thresholds unchanged: amber at 12 h, modal red at 24 h. **A survey cannot be finalized while the folder's last-synced time is older than the survey's `startedAt`** (S5).
+
+### 10.10 Restore is a folder copy
+
+To restore on a fresh phone: install the PWA, pick the (already-synced) `HydroLog/` folder, wait ~2 s for the index rebuild. That is the entire restore path. No import UI, no version negotiation, no ULID conflict resolution.
+
+If two copies of the folder exist and need merging (laptop worked offline while phone kept editing), the resolver runs per-file: same path + same hash → keep; same path + different hash → three-way diff, user picks. Merge is a rare operation, not a design center.
+
+### 10.11 Storage budget, revisited
+
+Structured data at 200 sites × 2 surveys: still ~9 MB (§14 T7 unchanged), now split across ~6 000 small files instead of one Dexie blob. Filesystem block overhead inflates on-disk usage to **~25 MB**. Irrelevant.
+
+Photo pressure: ~1.4 GB unchanged; handled by the OS per §10.7.
+
+### 10.12 Dropped from v2
+
+| Dropped | Reason |
+|---|---|
+| `navigator.storage.persist()` | Cache is rebuildable; loss is not a data event |
+| Drive OAuth (`drive.file` scope, v2 Phase 4) | The OS sync tool does this correctly; a browser-only client cannot |
+| App-managed media eviction | OS "available online only" is a better implementation |
+| Backup zip format + share-sheet as primary | Retained only as fallback for a phone without an installed sync app |
+| ULID-based conflict resolution on restore | Restore is a folder copy; merge is per-file |
+| Pre-schema-upgrade backup zip | Replaced by pre-migration folder snapshot |
+| Custom export-then-import restore path | Restore = folder pick |
 
 ---
 
@@ -413,6 +549,9 @@ Geometry tests marked ✅ have already been executed against this model.
 | T18 | 200 sites / 600 lines: map and list render under 1 s | to run |
 | T19 | Wake lock survives a `visibilitychange` during a 60 s GPS average | to run |
 | T20 | Schema upgrade writes a backup zip before running | to run |
+| T21 | Delete IndexedDB cache; app rebuilds identical index from folder within 3 s on target hardware | to run |
+| T22 | Crash mid-write (kill the process during a survey save); on relaunch the survey is either fully at the old state or fully at the new state, never partial | to run |
+| T23 | Two-device merge with one file edited on each side: resolver presents a diff, does not silently pick | to run |
 
 ---
 

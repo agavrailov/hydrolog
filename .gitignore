@@ -7,3 +7,6 @@ dist/
 coverage/
 .DS_Store
 Thumbs.db
+tsconfig.tsbuildinfo
+src/**/*.js
+*.config.js

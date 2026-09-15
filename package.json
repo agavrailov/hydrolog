@@ -21,9 +21,11 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.6.7",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "fake-indexeddb": "^6.2.5",
     "happy-dom": "^14.12.0",
     "typescript": "^5.5.3",
     "vite": "^5.3.3",

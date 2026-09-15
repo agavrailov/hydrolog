@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { getDb, SiteRow, SurveyRow } from './db';
+import { getDb, SiteRow, SurveyRow, LineRow } from './db';
 
 export interface SiteFilter {
   query?: string;
@@ -50,5 +50,24 @@ export function useSurvey(id: string | undefined): SurveyRow | undefined {
   return useLiveQuery(async () => {
     if (!id) return undefined;
     return getDb().surveys.get(id);
+  }, [id]);
+}
+
+export function useLines(surveyId: string | undefined): LineRow[] | undefined {
+  return useLiveQuery(async () => {
+    if (!surveyId) return [];
+    const survey = await getDb().surveys.get(surveyId);
+    if (!survey) return [];  // orphan lines hidden until survey is present
+    const rows = await getDb().lines.where('surveyId').equals(surveyId).toArray();
+    return rows
+      .filter((r) => !r.json.deletedAt)
+      .sort((a, b) => a.folderName.localeCompare(b.folderName));
+  }, [surveyId]);
+}
+
+export function useLine(id: string | undefined): LineRow | undefined {
+  return useLiveQuery(async () => {
+    if (!id) return undefined;
+    return getDb().lines.get(id);
   }, [id]);
 }

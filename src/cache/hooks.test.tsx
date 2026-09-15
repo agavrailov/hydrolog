@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { getDb, resetDb } from './db';
-import { useSites, useSite, useSurveys, useSurvey } from './hooks';
+import { useSites, useSite, useSurveys, useSurvey, useLines, useLine } from './hooks';
 
 beforeEach(async () => { await resetDb(); });
 
@@ -109,5 +109,62 @@ describe('useSurveys / useSurvey', () => {
     const { result } = renderHook(() => useSurvey('S1'));
     await waitFor(() => expect(result.current).toBeDefined());
     expect(result.current?.id).toBe('S1');
+  });
+});
+
+describe('useLines / useLine', () => {
+  const surveyRow = (id: string, siteId: string) => ({
+    id, siteId, folderName: `s01`,
+    json: {
+      id, siteId, startedAt: new Date(), timezone: 'Europe/Sofia',
+      operator: 'x', deviceModel: 'x', deviceSerial: 'x',
+      precipLast48h: 'none' as const, qualityFlag: 'good' as const,
+      createdAt: new Date(), updatedAt: new Date(), revision: 1,
+    },
+  });
+
+  const lineRow = (id: string, surveyId: string, label: string) => ({
+    id, surveyId, folderName: label, hasDeviceFiles: false,
+    json: {
+      id, label,
+      createdAt: new Date(), updatedAt: new Date(), revision: 1,
+      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      mode: 'multi-frequency' as const,
+      channelSetSnapshot: {
+        name: 'x', deviceModel: 'x', kind: 'frequency' as const,
+        units: 'mV' as const, depthModel: 'linear-nominal' as const,
+        provenanceNote: '', channels: [], frozenAt: new Date(),
+      },
+      vertices: [], dipoleOrientation: 'inline' as const,
+      transformLog: [], points: [], noiseZones: [],
+      status: 'draft' as const,
+    },
+  });
+
+  it('useLines returns lines under a survey, ordered by label', async () => {
+    const db = getDb();
+    await db.sites.put(siteRow('S', 'BG-SOF-0001'));
+    await db.surveys.put(surveyRow('SV', 'S'));
+    await db.lines.bulkPut([lineRow('L2id', 'SV', 'L2'), lineRow('L1id', 'SV', 'L1')]);
+    const { result } = renderHook(() => useLines('SV'));
+    await waitFor(() => expect(result.current).toBeDefined());
+    expect(result.current!.map((r) => r.json.label)).toEqual(['L1', 'L2']);
+  });
+
+  it('useLines returns [] when the parent survey row is missing', async () => {
+    const db = getDb();
+    await db.lines.put(lineRow('L1id', 'MISSING', 'L1'));
+    const { result } = renderHook(() => useLines('MISSING'));
+    await waitFor(() => expect(result.current).toBeDefined());
+    expect(result.current).toEqual([]);
+  });
+
+  it('useLine returns the row by id or undefined', async () => {
+    const db = getDb();
+    await db.surveys.put(surveyRow('SV', 'S'));
+    await db.lines.put(lineRow('L1id', 'SV', 'L1'));
+    const { result } = renderHook(() => useLine('L1id'));
+    await waitFor(() => expect(result.current).toBeDefined());
+    expect(result.current?.json.label).toBe('L1');
   });
 });

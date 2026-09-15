@@ -22,14 +22,10 @@ const line: Line = {
 };
 
 describe('writeSurveyUpdate', () => {
-  it('writes media, line.json, then survey.json in order', async () => {
+  it('writes media, line.json, and survey.json in a single call', async () => {
     const root = createMockRoot();
     const svPath = ['sites', 'ST_x', 'surveys', 's01'];
     await getOrCreatePath(root, svPath);  // ensure path exists
-
-    const order: string[] = [];
-    const originalWrite = (root as any).__trace = (event: string) => order.push(event);
-    void originalWrite;
 
     await writeSurveyUpdate(root, {
       sitePath: ['sites', 'ST_x'],

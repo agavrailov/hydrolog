@@ -10,6 +10,11 @@ export async function fileExists(
   }
 }
 
+// On Chromium-family browsers (the target platform per plan §10.4),
+// createWritable({ keepExistingData: false }) + close() is already atomic:
+// the browser writes to a swap file and renames it on close. A separate
+// .tmp indirection adds no safety and risks leaking stale files if the
+// process is interrupted. Write directly to the target name.
 async function writeBytes(
   dir: FileSystemDirectoryHandle,
   name: string,
@@ -29,30 +34,13 @@ async function readBytes(
   return h.getFile();
 }
 
-async function atomicWrite(
-  dir: FileSystemDirectoryHandle,
-  name: string,
-  bytes: BufferSource,
-): Promise<void> {
-  const tmpName = `${name}.tmp`;
-  await writeBytes(dir, tmpName, bytes);
-  try {
-    // "rename": copy tmp bytes over the final file, then delete tmp.
-    const tmp = await readBytes(dir, tmpName);
-    const buf = await tmp.arrayBuffer();
-    await writeBytes(dir, name, buf);
-  } finally {
-    try { await dir.removeEntry(tmpName); } catch { /* ignore */ }
-  }
-}
-
 export async function writeJson<T>(
   dir: FileSystemDirectoryHandle,
   name: string,
   data: T,
 ): Promise<void> {
   const json = JSON.stringify(data, null, 2);
-  await atomicWrite(dir, name, new TextEncoder().encode(json));
+  await writeBytes(dir, name, new TextEncoder().encode(json));
 }
 
 export async function readJson<T>(
@@ -72,7 +60,7 @@ export async function writeBlob(
   const bytes = blob instanceof Blob
     ? new Uint8Array(await blob.arrayBuffer())
     : blob;
-  await atomicWrite(dir, name, bytes);
+  await writeBytes(dir, name, bytes);
 }
 
 export async function readBlob(

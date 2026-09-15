@@ -17,6 +17,34 @@ describe('sanitizeFolderName', () => {
   it('collapses whitespace and trims', () => {
     expect(sanitizeFolderName('  hello   world  ')).toBe('hello-world');
   });
+
+  it('throws on empty string', () => {
+    expect(() => sanitizeFolderName('')).toThrow('folder name cannot be empty after sanitization');
+  });
+
+  it('throws on dot', () => {
+    expect(() => sanitizeFolderName('.')).toThrow('folder name cannot be empty after sanitization');
+  });
+
+  it('throws on double-dot', () => {
+    expect(() => sanitizeFolderName('..')).toThrow('folder name cannot be empty after sanitization');
+  });
+
+  it('throws on whitespace-only string', () => {
+    expect(() => sanitizeFolderName('   ')).toThrow('folder name cannot be empty after sanitization');
+  });
+
+  it('throws on Windows reserved name NUL', () => {
+    expect(() => sanitizeFolderName('NUL')).toThrow('folder name matches a Windows reserved name: NUL');
+  });
+
+  it('throws on Windows reserved name con (case-insensitive)', () => {
+    expect(() => sanitizeFolderName('con')).toThrow('folder name matches a Windows reserved name: con');
+  });
+
+  it('throws on Windows reserved name com3', () => {
+    expect(() => sanitizeFolderName('com3')).toThrow('folder name matches a Windows reserved name: com3');
+  });
 });
 
 describe('siteFolderName', () => {

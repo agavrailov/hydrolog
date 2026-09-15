@@ -2,13 +2,26 @@ import { formatFolderTimestamp } from '../util/time';
 
 const UNSAFE = /[\\/:*?"<>|]/g;
 
+// Windows reserved device names (case-insensitive, no extension).
+const WINDOWS_RESERVED = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
+
 export function sanitizeFolderName(name: string): string {
-  return name
+  const result = name
     .replace(UNSAFE, '-')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .trim();
+
+  if (result === '' || result === '.' || result === '..') {
+    throw new Error('folder name cannot be empty after sanitization');
+  }
+
+  if (WINDOWS_RESERVED.test(result)) {
+    throw new Error(`folder name matches a Windows reserved name: ${result}`);
+  }
+
+  return result;
 }
 
 export function siteFolderName(code: string, name: string): string {

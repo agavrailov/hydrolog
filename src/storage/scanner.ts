@@ -48,7 +48,7 @@ async function listDirs(dir: FileSystemDirectoryHandle): Promise<string[]> {
 async function listFiles(dir: FileSystemDirectoryHandle): Promise<string[]> {
   const out: string[] = [];
   for await (const [name, h] of (dir as any).entries()) {
-    if (h.kind === 'file') out.push(name);
+    if (h.kind === 'file' && !name.endsWith('.tmp')) out.push(name);
   }
   return out;
 }

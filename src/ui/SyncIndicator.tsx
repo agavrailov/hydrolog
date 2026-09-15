@@ -6,16 +6,16 @@ interface Props {
 }
 
 const COLORS: Record<ReturnType<typeof nagLevel>, string> = {
-  ok: '#2b7',
+  ok: '#888',
   amber: '#e90',
   red: '#c22',
 };
 
 export const SyncIndicator: FC<Props> = ({ hoursSinceSync }) => {
   const level = nagLevel(hoursSinceSync);
-  const label = hoursSinceSync === null
+  const primaryLabel = hoursSinceSync === null
     ? 'never synced'
-    : `${hoursSinceSync.toFixed(1)} h since sync`;
+    : `${hoursSinceSync.toFixed(1)} h since local probe`;
   return (
     <div
       data-testid="sync-indicator"
@@ -29,7 +29,10 @@ export const SyncIndicator: FC<Props> = ({ hoursSinceSync }) => {
         fontSize: 12,
       }}
     >
-      {label}
+      {primaryLabel}
+      {hoursSinceSync !== null && (
+        <div style={{ fontSize: 10, opacity: 0.85 }}>cloud round-trip not verified</div>
+      )}
     </div>
   );
 };

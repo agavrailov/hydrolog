@@ -2,7 +2,7 @@ import { describe, it, expectTypeOf } from 'vitest';
 import type {
   Site, Survey, Line, ChannelSet, ChannelSetSnapshot,
   Units, DepthModel, AnomalyType, Verdict,
-  AuditFields, Reading, Vertex,
+  AuditFields, Reading, Vertex, Anomaly,
 } from './types';
 
 describe('domain types', () => {
@@ -133,6 +133,24 @@ describe('domain types', () => {
       elevSource: 'none',
     };
     void v;
+  });
+
+  it('R2: Anomaly literals with depth_m fail to typecheck', () => {
+    const bad: Anomaly = {
+      lineId: 'x', fromPoint: 1, toPoint: 2,
+      fromChannel: 0, toChannel: 1,
+      // @ts-expect-error R2: pseudo-depth field is pseudoDepthFromM, never depth_m
+      depth_m: 42,
+      type: 'fracture-signature', confidence: 3,
+      pseudoDepthFromM: 0, pseudoDepthToM: 0,
+    };
+    void bad;
+  });
+
+  it('R3: DepthModel forbids arbitrary strings', () => {
+    // @ts-expect-error R3: DepthModel is a strict four-value union
+    const bad: DepthModel = 'made-up-model';
+    void bad;
   });
 });
 

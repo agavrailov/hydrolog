@@ -2,6 +2,7 @@ export const labels = {
   common: {
     save: 'Запази',
     cancel: 'Откажи',
+    continue: 'Продължи',
     edit: 'Редактирай',
     delete: 'Изтрий',
     restore: 'Възстанови',
@@ -87,7 +88,6 @@ export const labels = {
     editReasonLabel: 'Причина за промяната',
     editReasonRequired: 'Моля, посочи причина за редакцията на заключено проучване.',
     linesHeading: 'Профили',
-    linesPlaceholder: 'Профилите ще бъдат добавени в следваща фаза.',
     finalizeErrorBackup: 'Не мога да заключа: резервното копие не е синхронизирано след началото на проучването. Синхронизирай Drive/Syncthing и опитай отново.',
   },
   errors: {

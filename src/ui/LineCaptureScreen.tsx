@@ -129,7 +129,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
           </select>
         </label>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={onContinue}>Продължи</button>
+          <button type="button" onClick={onContinue}>{labels.common.continue}</button>
           <button type="button" onClick={onCancel}>{labels.common.cancel}</button>
         </div>
       </form>
@@ -174,7 +174,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
                 type="button"
                 onClick={() => setStage(stage === 'p1' ? 'anchor' : 'save')}
               >
-                Продължи
+                {labels.common.continue}
               </button>
               <button
                 type="button"
@@ -216,7 +216,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
             onClick={() => setStage('pn')}
             disabled={!pendingAnchor || busy}
           >
-            Продължи
+            {labels.common.continue}
           </button>
         </div>
       </section>

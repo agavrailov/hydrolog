@@ -101,5 +101,8 @@ describe('Phase 1c full line capture flow', () => {
     expect(persisted.vertices).toHaveLength(2);
     expect(persisted.vertices[0].hAccMethod).toBe('median-reported');
     expect(persisted.lengthM).toBeGreaterThan(0);
+    const mediaRow = await getDb().media.get(media.id);
+    expect(mediaRow).toBeDefined();
+    expect(mediaRow!.linkedId).toBe(line.id);
   });
 });

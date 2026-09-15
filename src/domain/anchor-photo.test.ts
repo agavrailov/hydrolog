@@ -75,6 +75,11 @@ describe('captureAnchorPhoto', () => {
     expect(Array.from(storedBytes)).toEqual([1, 2, 3, 4, 5]);
     // Returned media object matches the persisted one
     expect(media.storagePath).toContain('anchor.jpg');
+    // Cache row was populated per §10.3 folder-first-then-cache invariant
+    const cacheRow = await getDb().media.get(media.id);
+    expect(cacheRow).toBeDefined();
+    expect(cacheRow!.linkedId).toBe(line.id);
+    expect(cacheRow!.storagePath).toContain('anchor.jpg');
   });
 
   it('stamps lat/lon from the caller, never from EXIF', async () => {

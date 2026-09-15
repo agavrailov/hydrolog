@@ -79,5 +79,13 @@ export async function captureAnchorPhoto(input: AnchorCaptureInput): Promise<Med
     isOriginal: false, // downscaled per §4.13
   };
   await writeJson(lineDir, 'anchor-media.json', media);
+  await db.media.put({
+    id: media.id,
+    linkedKind: media.linkedTo.kind,
+    linkedId: media.linkedTo.id,
+    storagePath: media.storagePath,
+    sha256: media.sha256,
+    json: media,
+  });
   return media;
 }

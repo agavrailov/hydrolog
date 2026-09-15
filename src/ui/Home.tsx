@@ -58,7 +58,7 @@ export function Home() {
       </header>
       <section>
         <h2>Sites</h2>
-        <SiteList />
+        <SiteList onOpen={() => {}} />
       </section>
     </main>
   );

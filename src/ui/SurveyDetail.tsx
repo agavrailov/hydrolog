@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { labels } from './labels';
-import { useSurvey } from '../cache/hooks';
+import { useSurvey, useLines } from '../cache/hooks';
 import { finalizeSurvey } from '../domain/survey-service';
 
 interface Props {
   surveyId: string;
   onEdit: () => void;
   onBack: () => void;
+  onNewLine: () => void;
 }
 
-export function SurveyDetail({ surveyId, onEdit, onBack }: Props) {
+export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine }: Props) {
   const row = useSurvey(surveyId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -67,10 +68,26 @@ export function SurveyDetail({ surveyId, onEdit, onBack }: Props) {
         {!s.finalizedAt && (
           <button onClick={onFinalize} disabled={busy}>{l.finalize}</button>
         )}
+        <button onClick={onNewLine} disabled={busy}>{labels.line.newLine}</button>
       </div>
 
       <h2>{l.linesHeading}</h2>
-      <p>{l.linesPlaceholder}</p>
+      <LinesList surveyId={surveyId} />
     </section>
+  );
+}
+
+function LinesList({ surveyId }: { surveyId: string }) {
+  const lines = useLines(surveyId);
+  if (lines === undefined) return <p>{labels.common.loading}</p>;
+  if (lines.length === 0) return <p>{labels.line.noLines}</p>;
+  return (
+    <ul>
+      {lines.map((r) => (
+        <li key={r.id}>
+          <strong>{r.json.label}</strong> · {r.json.pointCount} точки, {r.json.pointSpacingM} m spacing
+        </li>
+      ))}
+    </ul>
   );
 }

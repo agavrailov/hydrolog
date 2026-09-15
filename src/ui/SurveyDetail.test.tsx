@@ -33,18 +33,18 @@ async function seed() {
 }
 
 describe('<SurveyDetail />', () => {
-  it('renders survey fields and the lines placeholder', async () => {
+  it('renders survey fields and the lines heading', async () => {
     const { sv } = await seed();
-    render(<SurveyDetail surveyId={sv.id} onEdit={() => {}} onBack={() => {}} />);
+    render(<SurveyDetail surveyId={sv.id} onEdit={() => {}} onBack={() => {}} onNewLine={() => {}} />);
     expect(await screen.findByText('Anton')).toBeInTheDocument();
-    expect(screen.getByText(/следваща фаза/i)).toBeInTheDocument();
+    expect(screen.getByText(/профили/i)).toBeInTheDocument();
   });
 
   it('finalize button succeeds when the sync probe is fresh', async () => {
     const { sv } = await seed();
     await writeSyncProbe(root, new Date());
 
-    render(<SurveyDetail surveyId={sv.id} onEdit={() => {}} onBack={() => {}} />);
+    render(<SurveyDetail surveyId={sv.id} onEdit={() => {}} onBack={() => {}} onNewLine={() => {}} />);
     await screen.findByText('Anton');
     await userEvent.click(screen.getByRole('button', { name: /заключи/i }));
 
@@ -54,7 +54,7 @@ describe('<SurveyDetail />', () => {
   it('finalize surfaces the §10.9 backup error when the probe is missing', async () => {
     const { sv } = await seed();
     // No probe written
-    render(<SurveyDetail surveyId={sv.id} onEdit={() => {}} onBack={() => {}} />);
+    render(<SurveyDetail surveyId={sv.id} onEdit={() => {}} onBack={() => {}} onNewLine={() => {}} />);
     await screen.findByText('Anton');
     await userEvent.click(screen.getByRole('button', { name: /заключи/i }));
 

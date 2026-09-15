@@ -37,7 +37,7 @@ class MockFileHandle {
   constructor(public name: string, private file: MockFile) {}
 
   async getFile(): Promise<File> {
-    return new File([this.file.data], this.name);
+    return new File([new Uint8Array(this.file.data)], this.name);
   }
 
   async createWritable(_opts?: { keepExistingData?: boolean }): Promise<MockWritable> {

@@ -16,7 +16,6 @@ async function writeBytes(
   bytes: BufferSource,
 ): Promise<void> {
   const h = await dir.getFileHandle(name, { create: true });
-  // @ts-expect-error createWritable exists on FileSystemFileHandle in browsers
   const w = await h.createWritable({ keepExistingData: false });
   await w.write(bytes);
   await w.close();

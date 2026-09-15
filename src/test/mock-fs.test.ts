@@ -19,7 +19,7 @@ describe('mock FileSystemDirectoryHandle', () => {
     await sub.getFileHandle('inner.txt', { create: true });
 
     const entries: string[] = [];
-    for await (const [name] of root.entries()) entries.push(name);
+    for await (const [name] of (root as any).entries()) entries.push(name);
     expect(entries).toContain('sub');
   });
 

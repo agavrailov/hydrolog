@@ -49,7 +49,6 @@ export async function buildFixtureRoot(spec: FixtureSpec): Promise<FileSystemDir
           const df = await getOrCreatePath(lnDir, ['device-files']);
           for (const name of ln.deviceFiles) {
             const h = await df.getFileHandle(name, { create: true });
-            // @ts-expect-error createWritable exists on mock
             const w = await h.createWritable();
             await w.write(new Uint8Array([0]));
             await w.close();
@@ -59,7 +58,6 @@ export async function buildFixtureRoot(spec: FixtureSpec): Promise<FileSystemDir
           const md = await getOrCreatePath(lnDir, ['media']);
           for (const name of ln.mediaFiles) {
             const h = await md.getFileHandle(name, { create: true });
-            // @ts-expect-error createWritable exists on mock
             const w = await h.createWritable();
             await w.write(new Uint8Array([0]));
             await w.close();

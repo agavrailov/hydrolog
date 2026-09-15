@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  pickRootFolder, persistRoot, getPersistedRoot, verifyPermission,
+  pickRootFolder, persistRoot, getPersistedRoot, verifyPermission, setRoot,
 } from '../storage/fs';
 import { scanRoot } from '../storage/scanner';
 import { rebuildCache } from '../cache/rebuild';
 import { hoursSinceLastSync } from '../storage/sync';
-import { SiteList } from './SiteList';
+import { Router } from './Router';
 import { SyncIndicator } from './SyncIndicator';
 
 export function Home() {
@@ -17,6 +17,7 @@ export function Home() {
     setLoading(true);
     try {
       if (!(await verifyPermission(root))) throw new Error('permission denied');
+      setRoot(root);
       const scan = await scanRoot(root);
       await rebuildCache(scan);
       setHours(await hoursSinceLastSync(root, new Date()));
@@ -56,10 +57,7 @@ export function Home() {
         <h1>HydroLog</h1>
         <SyncIndicator hoursSinceSync={hours} />
       </header>
-      <section>
-        <h2>Sites</h2>
-        <SiteList onOpen={() => {}} />
-      </section>
+      <Router />
     </main>
   );
 }

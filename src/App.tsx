@@ -1,3 +1,5 @@
+import { Home } from './ui/Home';
+
 export function App() {
-  return <div>HydroLog boot</div>;
+  return <Home />;
 }

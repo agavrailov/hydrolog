@@ -47,3 +47,20 @@ export async function verifyPermission(
   // @ts-expect-error requestPermission is on real handles; mock provides it.
   return (await handle.requestPermission?.(opts)) === 'granted';
 }
+
+let currentRoot: FileSystemDirectoryHandle | null = null;
+
+export function setRoot(handle: FileSystemDirectoryHandle): void {
+  currentRoot = handle;
+}
+
+export function getRoot(): FileSystemDirectoryHandle {
+  if (!currentRoot) {
+    throw new Error('root folder not set — call setRoot() after picking a folder');
+  }
+  return currentRoot;
+}
+
+export function clearRoot(): void {
+  currentRoot = null;
+}

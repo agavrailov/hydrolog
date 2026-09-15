@@ -18,6 +18,46 @@ beforeEach(async () => {
 });
 
 describe('Phase 1b full CRUD flow', () => {
+  it('restore after ordinary edits keeps the folder graph intact', async () => {
+    // Create site + one survey
+    const site = await createSite({
+      name: 'Ivanov', settlement: 'x', municipality: 'x', region: 'Софийска',
+      centroid: { lat: 0, lon: 0 }, accessNotes: '', landUse: '',
+      status: 'surveyed', tags: [],
+    });
+    const svBefore = await createSurvey(site.id, {
+      startedAt: new Date(Date.now() - 3600_000),
+      timezone: 'Europe/Sofia', operator: 'Anton',
+      deviceModel: 'PQWT-TC300', deviceSerial: 'x',
+      precipLast48h: 'none', qualityFlag: 'good',
+    });
+
+    // Edit the site (e.g. accessNotes) — must not affect folder or survey linkage
+    await updateSite(site.id, { accessNotes: 'north gate' });
+
+    // Soft-delete
+    await softDeleteSite(site.id);
+    const tombs = await getPath(root, ['_tombstones']);
+    let tombName: string | null = null;
+    for await (const [n, h] of (tombs as any).entries()) {
+      if (h.kind === 'file' && n.startsWith('BG-SOF-0001_Ivanov_')) tombName = n;
+    }
+    expect(tombName).not.toBeNull();
+
+    // Restore
+    await restoreSite(tombName!);
+
+    // The original site folder is still there and its surveys/ subtree is reachable
+    const siteDir = await getPath(root, ['sites', 'BG-SOF-0001_Ivanov']);
+    expect(siteDir).not.toBeNull();
+    const surveysDir = await getPath(siteDir!, ['surveys']);
+    expect(surveysDir).not.toBeNull();
+
+    // The survey row is still in the cache and points at the same folder
+    const svRow = await getDb().surveys.get(svBefore.id);
+    expect(svRow).toBeDefined();
+  });
+
   it('create site → create survey → edit both → finalize → soft-delete → restore', async () => {
     // 1. Create a site
     const site = await createSite({

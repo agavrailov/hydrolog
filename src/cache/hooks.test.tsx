@@ -76,6 +76,23 @@ describe('useSurveys / useSurvey', () => {
     expect(result.current!.map((r) => r.id)).toEqual(['S2', 'S1']);
   });
 
+  it('useSurveys returns empty array when the parent site row is missing', async () => {
+    const db = getDb();
+    // Survey row exists but no matching site row (simulates soft-deleted parent)
+    await db.surveys.put({
+      id: 'S1', siteId: 'MISSING', folderName: 's01',
+      json: {
+        id: 'S1', siteId: 'MISSING', startedAt: new Date(), timezone: 'Europe/Sofia',
+        operator: 'x', deviceModel: 'x', deviceSerial: 'x',
+        precipLast48h: 'none' as const, qualityFlag: 'good' as const,
+        createdAt: new Date(), updatedAt: new Date(), revision: 1,
+      },
+    });
+    const { result } = renderHook(() => useSurveys('MISSING'));
+    await waitFor(() => expect(result.current).toBeDefined());
+    expect(result.current).toEqual([]);
+  });
+
   it('useSurvey returns a survey by id', async () => {
     const db = getDb();
     const now = new Date();

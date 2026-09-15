@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { labels } from './labels';
 import {
   pickRootFolder, persistRoot, getPersistedRoot, verifyPermission, setRoot,
 } from '../storage/fs';
@@ -45,7 +46,7 @@ export function Home() {
       <main style={{ padding: 16, fontFamily: 'system-ui, sans-serif' }}>
         <h1>HydroLog</h1>
         <button onClick={onPick} disabled={loading}>
-          {loading ? 'Scanning…' : 'Pick folder'}
+          {loading ? labels.home.scanning : labels.home.pickFolder}
         </button>
       </main>
     );

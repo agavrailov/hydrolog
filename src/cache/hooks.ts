@@ -37,6 +37,8 @@ export function useSite(id: string | undefined): SiteRow | undefined {
 export function useSurveys(siteId: string | undefined): SurveyRow[] | undefined {
   return useLiveQuery(async () => {
     if (!siteId) return [];
+    const site = await getDb().sites.get(siteId);
+    if (!site) return [];  // orphan surveys hidden until site is restored
     const rows = await getDb().surveys.where('siteId').equals(siteId).toArray();
     return rows
       .filter((r) => !r.json.deletedAt)

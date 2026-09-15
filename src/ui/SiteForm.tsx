@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { labels } from './labels';
 import type { Site } from '../domain/types';
 import type { SiteRow } from '../cache/db';
-import { createSite, updateSite, type SiteCreateInput } from '../domain/site-service';
+import { createSite, updateSite, type SiteCreateInput, type SiteUpdateInput } from '../domain/site-service';
 
 type CreateProps = {
   mode: 'create';
@@ -89,24 +89,36 @@ export function SiteForm(props: Props) {
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean);
-      const base: SiteCreateInput = {
-        name: state.name,
-        settlement: state.settlement,
-        ekatte: state.ekatte || undefined,
-        cadastralParcelId: state.cadastralParcelId || undefined,
-        municipality: state.municipality,
-        region: state.region,
-        centroid,
-        accessNotes: state.accessNotes,
-        landUse: state.landUse,
-        tags,
-        status: state.status,
-      };
       if (props.mode === 'create') {
+        const base: SiteCreateInput = {
+          name: state.name,
+          settlement: state.settlement,
+          ekatte: state.ekatte || undefined,
+          cadastralParcelId: state.cadastralParcelId || undefined,
+          municipality: state.municipality,
+          region: state.region,
+          centroid,
+          accessNotes: state.accessNotes,
+          landUse: state.landUse,
+          tags,
+          status: state.status,
+        };
         const site = await createSite(base);
         props.onSaved(site);
       } else {
-        const site = await updateSite(props.siteRow.id, base);
+        const patch: SiteUpdateInput = {
+          settlement: state.settlement,
+          ekatte: state.ekatte || undefined,
+          cadastralParcelId: state.cadastralParcelId || undefined,
+          municipality: state.municipality,
+          region: state.region,
+          centroid,
+          accessNotes: state.accessNotes,
+          landUse: state.landUse,
+          tags,
+          status: state.status,
+        };
+        const site = await updateSite(props.siteRow.id, patch);
         props.onSaved(site);
       }
     } catch (err) {
@@ -123,9 +135,14 @@ export function SiteForm(props: Props) {
 
       {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
 
-      <label>{l.fields.name}
-        <input value={state.name} onChange={(e) => set('name', e.target.value)} required />
-      </label>
+      {props.mode === 'edit'
+        ? <h3 style={{ marginTop: 0 }}>{state.name}</h3>
+        : (
+          <label>{l.fields.name}
+            <input value={state.name} onChange={(e) => set('name', e.target.value)} required />
+          </label>
+        )
+      }
       <label>{l.fields.settlement}
         <input value={state.settlement} onChange={(e) => set('settlement', e.target.value)} required />
       </label>

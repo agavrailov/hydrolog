@@ -11,8 +11,12 @@ export type SiteCreateInput = Omit<
 >;
 
 export type SiteUpdateInput = Partial<
-  Omit<Site, 'id' | 'code' | 'createdAt' | 'revision' | 'deletedAt'>
+  Omit<Site, 'id' | 'code' | 'name' | 'createdAt' | 'revision' | 'deletedAt'>
 >;
+
+interface TombstonedSite extends Site {
+  folderName?: string;
+}
 
 export async function createSite(input: SiteCreateInput): Promise<Site> {
   const root = getRoot();
@@ -79,11 +83,12 @@ export async function softDeleteSite(id: string): Promise<void> {
   if (!row) throw new Error(`site not found: ${id}`);
 
   const now = new Date();
-  const tombstoned: Site = {
+  const tombstoned: TombstonedSite = {
     ...row.json,
     deletedAt: now,
     updatedAt: now,
     revision: row.json.revision + 1,
+    folderName: row.folderName,
   };
 
   const tombstonesDir = await getOrCreatePath(root, ['_tombstones']);
@@ -105,7 +110,7 @@ export async function restoreSite(tombstoneName: string): Promise<Site> {
 
   const tombstonesDir = await getPath(root, ['_tombstones']);
   if (!tombstonesDir) throw new Error('_tombstones/ not found');
-  const stored = await readJson<Site>(tombstonesDir, tombstoneName);
+  const stored = await readJson<TombstonedSite>(tombstonesDir, tombstoneName);
 
   const restored: Site = {
     ...stored,
@@ -114,7 +119,7 @@ export async function restoreSite(tombstoneName: string): Promise<Site> {
     revision: stored.revision + 1,
   };
 
-  const folderName = siteFolderName(restored.code, restored.name);
+  const folderName = stored.folderName ?? siteFolderName(restored.code, restored.name);
   const siteDir = await getOrCreatePath(root, ['sites', folderName]);
   await writeJson(siteDir, 'site.json', restored);
   await tombstonesDir.removeEntry(tombstoneName);

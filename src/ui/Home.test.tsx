@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Home } from './Home';
 import { setFsAdapter, clearPersistedRoot } from '../storage/fs';
 import { createMockRoot } from '../test/mock-fs';
-import { getDb, resetDb } from '../cache/db';
+import { resetDb } from '../cache/db';
 import { buildFixtureRoot, stubChannelSet } from '../test/fixtures';
 
 beforeEach(async () => {
@@ -15,7 +15,7 @@ beforeEach(async () => {
 describe('<Home />', () => {
   it('shows a Pick folder button when no folder is persisted', async () => {
     render(<Home />);
-    expect(await screen.findByRole('button', { name: /pick folder/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /избери папка/i })).toBeInTheDocument();
   });
 
   it('after picking a folder with a site, lists the site', async () => {
@@ -55,7 +55,7 @@ describe('<Home />', () => {
     setFsAdapter({ showDirectoryPicker: async () => root });
 
     render(<Home />);
-    const pick = await screen.findByRole('button', { name: /pick folder/i });
+    const pick = await screen.findByRole('button', { name: /избери папка/i });
     await userEvent.click(pick);
 
     await waitFor(() => {
@@ -67,7 +67,7 @@ describe('<Home />', () => {
     const root = createMockRoot();
     setFsAdapter({ showDirectoryPicker: async () => root });
     render(<Home />);
-    const pick = await screen.findByRole('button', { name: /pick folder/i });
+    const pick = await screen.findByRole('button', { name: /избери папка/i });
     await userEvent.click(pick);
     await waitFor(() => {
       expect(screen.getByTestId('sync-indicator')).toHaveAttribute('data-nag', 'red');

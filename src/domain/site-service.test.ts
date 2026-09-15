@@ -4,7 +4,7 @@ import { setRoot, clearRoot } from '../storage/fs';
 import { getDb, resetDb } from '../cache/db';
 import { readJson, fileExists } from '../storage/atomic';
 import { getPath } from '../storage/paths';
-import { createSite, updateSite, softDeleteSite, restoreSite } from './site-service';
+import { createSite, updateSite, softDeleteSite, restoreSite, SiteUpdateInput } from './site-service';
 
 let root: FileSystemDirectoryHandle;
 beforeEach(async () => {
@@ -80,6 +80,18 @@ describe('updateSite', () => {
 
   it('throws when the site does not exist', async () => {
     await expect(updateSite('01J000MISSING', { accessNotes: 'x' })).rejects.toThrow(/not found/i);
+  });
+});
+
+describe('SiteUpdateInput', () => {
+  it('SiteUpdateInput does not accept a name property (Option B guard)', () => {
+    // TypeScript compile-time assertion; the @ts-expect-error line proves the
+    // rejection. Reason: renaming a site would leave the folder graph and cache
+    // row.folderName pointing at the old name. Rename must go through a dedicated
+    // service (see final-review ruling for Phase 1b).
+    // @ts-expect-error name is not part of SiteUpdateInput
+    const bad: SiteUpdateInput = { name: 'x' };
+    void bad;
   });
 });
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { labels } from './labels';
 import { useSurvey, useLines } from '../cache/hooks';
 import { finalizeSurvey } from '../domain/survey-service';
+import { ProfileCanvas } from './ProfileCanvas';
 
 interface Props {
   surveyId: string;
@@ -113,10 +114,21 @@ function LinesList({ surveyId, onOpen }: { surveyId: string; onOpen: (id: string
           className={`card card--interactive line-card line-card--${r.json.status}`}
           onClick={() => onOpen(r.id)}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: r.json.points.length > 0 ? 8 : 6 }}>
             <span className="line-card__label">{r.json.label}</span>
             <span className={`chip chip--${r.json.status}`}>{labels.line.statusOptions[r.json.status as keyof typeof labels.line.statusOptions] ?? r.json.status}</span>
           </div>
+          {r.json.points.length > 0 && (
+            <div style={{ marginBottom: 8, borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+              <ProfileCanvas
+                points={r.json.points}
+                channelSet={r.json.channelSetSnapshot}
+                cellW={3}
+                cellH={5}
+                thumbnail
+              />
+            </div>
+          )}
           <div className="line-card__meta">
             <span>{r.json.pointCount} {labels.line.points}</span>
             <span className="line-card__dot">·</span>

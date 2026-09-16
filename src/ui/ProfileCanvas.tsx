@@ -16,9 +16,10 @@ interface ProfileCanvasProps {
   anomalies?: Anomaly[];
   cellW?: number;
   cellH?: number;
+  thumbnail?: boolean;
 }
 
-export function ProfileCanvas({ points, channelSet, anomalies, cellW = 20, cellH = 8 }: ProfileCanvasProps) {
+export function ProfileCanvas({ points, channelSet, anomalies, cellW = 20, cellH = 8, thumbnail = false }: ProfileCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -73,6 +74,16 @@ export function ProfileCanvas({ points, channelSet, anomalies, cellW = 20, cellH
       ctx.restore();
     }
   }, [points, channelSet, anomalies, cellW, cellH]);
+
+  if (thumbnail) {
+    return (
+      <canvas
+        ref={canvasRef}
+        style={{ display: 'block', width: '100%', imageRendering: 'pixelated' }}
+        aria-label={labels.profile.canvasAriaLabel}
+      />
+    );
+  }
 
   return (
     <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>

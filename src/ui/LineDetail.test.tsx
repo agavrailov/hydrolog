@@ -6,6 +6,7 @@ import { resetDb } from '../cache/db';
 import { createSite } from '../domain/site-service';
 import { createSurvey } from '../domain/survey-service';
 import { createLine, attachDeviceData } from '../domain/line-service';
+import { addAnomaly } from '../domain/interpretation-service';
 import { LineDetail } from './LineDetail';
 import type { Vertex, Point } from '../domain/types';
 
@@ -80,5 +81,33 @@ describe('<LineDetail />', () => {
     render(<LineDetail lineId={line.id} onBack={() => {}} />);
     await screen.findByText('Профил от устройство');
     expect(await screen.findByLabelText('Матрица от измервания — цветова скала mV')).toBeInTheDocument();
+  });
+
+  it('shows anomaly in list and delete button after addAnomaly', async () => {
+    const line = await seedLine();
+    const now = new Date();
+    const onePoint: Point = {
+      index: 1, offsetM: 0, lat: 42.32, lon: 23.78,
+      elevSource: 'none', coordSource: 'interpolated',
+      readings: [{ pass: 1, recordedAt: now, values: [0.1], groundingOk: true, electrodeTreatment: 'none' }],
+      flags: [],
+    };
+    await attachDeviceData(line.id, {
+      channelSetSnapshot: line.channelSetSnapshot,
+      pointCount: 1,
+      deviceStartPointIndex: 80,
+      deviceLineNumber: '1',
+      mode: 'multi-frequency',
+      status: 'complete',
+      points: [onePoint],
+    });
+    await addAnomaly(line.id, {
+      fromPoint: 1, toPoint: 1, fromChannel: 1, toChannel: 1,
+      type: 'fracture-signature', confidence: 3,
+    });
+
+    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    expect(await screen.findByText(/fracture-signature/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Изтрий/i })).toBeInTheDocument();
   });
 });

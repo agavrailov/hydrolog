@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { labels } from './labels';
-import { useLine, useLineMedia } from '../cache/hooks';
+import { useLine, useLineMedia, useInterpretation } from '../cache/hooks';
 import { ProfileCanvas } from './ProfileCanvas';
+import { AnomalyForm } from './AnomalyForm';
+import { addAnomaly, removeAnomaly } from '../domain/interpretation-service';
+import type { AnomalyInput } from '../domain/interpretation-service';
 import { getPath } from '../storage/paths';
 import { readBlob } from '../storage/atomic';
 import { getRoot } from '../storage/fs';
@@ -55,17 +58,28 @@ function useBmpUrls(storagePaths: string[]): string[] {
 export function LineDetail({ lineId, onBack }: Props) {
   const row = useLine(lineId);
   const media = useLineMedia(lineId);
+  const interpretation = useInterpretation(lineId);
 
   const deviceScreenPaths = (media ?? [])
     .filter((m) => m.json.kind === 'device-screen')
     .map((m) => m.storagePath);
 
   const bmpUrls = useBmpUrls(deviceScreenPaths);
+  const anomalies = interpretation?.json.anomalies ?? [];
+
+  async function handleAddAnomaly(input: AnomalyInput) {
+    await addAnomaly(lineId, input);
+  }
+
+  async function handleRemoveAnomaly(anomalyId: string) {
+    await removeAnomaly(lineId, anomalyId);
+  }
 
   if (!row) return <p>{labels.common.loading}</p>;
   const l = row.json;
   const ll = labels.line;
   const pl = labels.profile;
+  const al = labels.anomaly;
 
   return (
     <section style={{ padding: 16, maxWidth: 720 }}>
@@ -98,7 +112,7 @@ export function LineDetail({ lineId, onBack }: Props) {
         <p>{pl.noData}</p>
       ) : (
         <>
-          <ProfileCanvas points={l.points} channelSet={l.channelSetSnapshot} />
+          <ProfileCanvas points={l.points} channelSet={l.channelSetSnapshot} anomalies={anomalies} />
           {bmpUrls.length > 0 && (
             <>
               <h3>{pl.deviceScreens}</h3>
@@ -114,6 +128,31 @@ export function LineDetail({ lineId, onBack }: Props) {
               </div>
             </>
           )}
+
+          <h2>{al.heading}</h2>
+          {anomalies.length === 0 ? (
+            <p>{al.noAnomalies}</p>
+          ) : (
+            <ul>
+              {anomalies.map((a) => (
+                <li key={a.id}>
+                  {a.type} · т.{a.fromPoint}–{a.toPoint} · к.{a.fromChannel}–{a.toChannel} · {a.confidence}★
+                  {a.note && ` — ${a.note}`}
+                  <button
+                    onClick={() => handleRemoveAnomaly(a.id)}
+                    style={{ marginLeft: 8 }}
+                  >
+                    {al.deleteButton}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AnomalyForm
+            pointCount={l.pointCount}
+            channelCount={l.channelSetSnapshot.channels.length}
+            onSubmit={handleAddAnomaly}
+          />
         </>
       )}
     </section>

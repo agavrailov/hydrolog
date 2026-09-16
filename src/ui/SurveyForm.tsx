@@ -190,6 +190,7 @@ export function SurveyForm(props: Props) {
 
   return (
     <form onSubmit={onSubmit} className="form-page">
+      <button type="button" className="btn-ghost" onClick={props.onCancel} style={{ alignSelf: 'flex-start' }}>{labels.common.back}</button>
       <h2>{props.mode === 'create' ? l.createTitle : l.editTitle}</h2>
 
       {error && <div role="alert" className="alert alert--error">{error}</div>}

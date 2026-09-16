@@ -99,16 +99,38 @@ export function LineDetail({ lineId, onBack }: Props) {
         {l.lengthM != null && (<><dt>{ll.lengthM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.lengthM.toFixed(2)} m</dd></>)}
       </dl>
 
-      <div className="section-heading">
-        <h2 style={{ margin: 0 }}>{ll.verticesFixed}</h2>
-      </div>
-      <ul style={{ padding: 0, listStyle: 'none' }}>
-        {l.vertices.map((v, i) => (
-          <li key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '4px 0' }}>
-            точка {v.atPointIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
-          </li>
-        ))}
-      </ul>
+      {l.vertices.length > 0 && (
+        <>
+          <div className="section-heading">
+            <h2 style={{ margin: 0 }}>{ll.verticesFixed}</h2>
+          </div>
+          <ul style={{ padding: 0, listStyle: 'none' }}>
+            {l.vertices.map((v, i) => (
+              <li key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '4px 0' }}>
+                точка {v.atPointIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {bmpUrls.length > 0 && (
+        <>
+          <div className="section-heading">
+            <h2 style={{ margin: 0 }}>{pl.deviceScreens}</h2>
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 'var(--space-3)' }}>
+            {bmpUrls.map((url, i) => (
+              <img
+                key={i}
+                src={url}
+                alt={`${pl.deviceScreens} ${i + 1}`}
+                style={{ maxHeight: 300, objectFit: 'contain', borderRadius: 'var(--r-sm)' }}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{pl.heading}</h2>
@@ -121,22 +143,6 @@ export function LineDetail({ lineId, onBack }: Props) {
           <div className="canvas-wrapper">
             <ProfileCanvas points={l.points} channelSet={l.channelSetSnapshot} anomalies={anomalies} />
           </div>
-
-          {bmpUrls.length > 0 && (
-            <>
-              <h3>{pl.deviceScreens}</h3>
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 'var(--space-3)' }}>
-                {bmpUrls.map((url, i) => (
-                  <img
-                    key={i}
-                    src={url}
-                    alt={`${pl.deviceScreens} ${i + 1}`}
-                    style={{ maxHeight: 240, objectFit: 'contain', borderRadius: 'var(--r-sm)' }}
-                  />
-                ))}
-              </div>
-            </>
-          )}
 
           <div className="section-heading">
             <h2 style={{ margin: 0 }}>{al.heading}</h2>

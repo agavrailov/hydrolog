@@ -152,6 +152,14 @@ describe('domain types', () => {
     const bad: DepthModel = 'made-up-model';
     void bad;
   });
+
+  it('Line.deviceStartPointIndex is optional and typed as number (§7 import)', () => {
+    // Both forms must typecheck: with and without the field
+    const withField: Pick<Line, 'deviceStartPointIndex'> = { deviceStartPointIndex: 80 };
+    const withoutField: Pick<Line, 'deviceStartPointIndex'> = {};
+    void withField; void withoutField;
+    expectTypeOf<Line['deviceStartPointIndex']>().toEqualTypeOf<number | undefined>();
+  });
 });
 
 // re-import at bottom because vitest needs the value

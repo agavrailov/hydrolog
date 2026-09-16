@@ -126,6 +126,7 @@ export interface Line extends AuditFields {
   label: string;                  // "L1"
   deviceLineNumber?: string;
   deviceSessionDate?: string;     // YYYY-MM-DD; L-number is not unique across sessions
+  deviceStartPointIndex?: number;    // §7: operator-set device N at point 1 (varies per line); preserve verbatim per §7.5
   pointCount: number;             // default 17
   pointSpacingM: number;          // typically 1–2 m
   electrodeSpacingM: number;      // MUST be > pointSpacingM

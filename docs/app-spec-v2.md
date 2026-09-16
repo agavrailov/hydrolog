@@ -126,6 +126,7 @@ Client?
 |---|---|
 | `label` | "L1" |
 | `deviceLineNumber` + `deviceSessionDate` | **Both** — the instrument's L-numbering resets per session, so the L-number alone is not a join key (§7.4). |
+| `deviceStartPointIndex?` | operator-set device N at point 1 (varies per line, chosen on the device). Populated at import (§7); preserved verbatim per §7.5. |
 | `pointCount` | default 17, range 5–999 |
 | `pointSpacingM` | dot spacing, typically 1–2 m |
 | `electrodeSpacingM` | typically 5–10 m. **Hard guard: must be > `pointSpacingM`**, otherwise the two were swapped and the whole x-axis is wrong. |

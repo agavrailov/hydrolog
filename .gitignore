@@ -10,3 +10,7 @@ Thumbs.db
 tsconfig.tsbuildinfo
 src/**/*.js
 *.config.js
+
+# Phase 0 sample device data (§7.3 verbatim storage; not tracked by git)
+Profile Survey/
+samples/

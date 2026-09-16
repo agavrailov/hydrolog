@@ -5,28 +5,33 @@ import { ProfileCanvas } from './ProfileCanvas';
 import { AnomalyForm } from './AnomalyForm';
 import { addAnomaly, removeAnomaly } from '../domain/interpretation-service';
 import type { AnomalyInput } from '../domain/interpretation-service';
-import { updateLine } from '../domain/line-service';
+import { updateLine, softDeleteLine } from '../domain/line-service';
 import type { Line } from '../domain/types';
 import { useBmpUrls } from './util/useBmpUrls';
 
 interface Props {
   lineId: string;
+  onDeleted?: () => void;
 }
 
 
 const LINE_STATUSES: Line['status'][] = ['draft', 'data-pending', 'complete', 'archived'];
 
-export function LineDetail({ lineId }: Props) {
+export function LineDetail({ lineId, onDeleted }: Props) {
   const row = useLine(lineId);
   const media = useLineMedia(lineId);
   const interpretation = useInterpretation(lineId);
   const [statusBusy, setStatusBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
-  const deviceScreenPaths = (media ?? [])
-    .filter((m) => m.json.kind === 'device-screen')
-    .map((m) => m.storagePath);
-
+  const deviceScreenMedia = (media ?? []).filter((m) => m.json.kind === 'device-screen');
+  const deviceScreenPaths = deviceScreenMedia.map((m) => m.storagePath);
   const bmpUrls = useBmpUrls(deviceScreenPaths);
+  const deviceScreenItems = bmpUrls.map((url, i) => ({
+    url,
+    name: deviceScreenMedia[i]?.storagePath.split('/').pop() ?? `снимка ${i + 1}`,
+  }));
   const anomalies = interpretation?.json.anomalies ?? [];
 
   async function handleAddAnomaly(input: AnomalyInput) {
@@ -44,6 +49,16 @@ export function LineDetail({ lineId }: Props) {
     finally { setStatusBusy(false); }
   }
 
+  async function handleDelete() {
+    setDeleteBusy(true);
+    try {
+      await softDeleteLine(lineId);
+      onDeleted?.();
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   if (!row) return <p className="loading-text">{labels.common.loading}</p>;
   const l = row.json;
   const ll = labels.line;
@@ -56,6 +71,23 @@ export function LineDetail({ lineId }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
           <h1 style={{ margin: 0 }}>{l.label}</h1>
           <span className={`chip chip--${l.status}`}>{ll.statusOptions[l.status]}</span>
+          <div style={{ marginLeft: 'auto' }}>
+            {!confirmDelete ? (
+              <button className="btn-danger" onClick={() => setConfirmDelete(true)} style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+                {labels.common.delete}
+              </button>
+            ) : (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--color-danger)' }}>{labels.line.confirmDelete}</span>
+                <button className="btn-danger" onClick={handleDelete} disabled={deleteBusy} style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+                  {labels.common.delete}
+                </button>
+                <button className="btn-ghost" onClick={() => setConfirmDelete(false)} style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+                  {labels.common.cancel}
+                </button>
+              </span>
+            )}
+          </div>
         </div>
         <div className="tap-group">
           {LINE_STATUSES.map((s) => (
@@ -96,21 +128,23 @@ export function LineDetail({ lineId }: Props) {
         </>
       )}
 
-      {bmpUrls.length > 0 && (
+      {deviceScreenItems.length > 0 && (
         <>
           <div className="section-heading">
             <h2 style={{ margin: 0 }}>{pl.deviceScreens}</h2>
           </div>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 'var(--space-3)' }}>
-            {bmpUrls.map((url, i) => (
+          {deviceScreenItems.map((item) => (
+            <div key={item.url} style={{ marginBottom: 'var(--space-3)' }}>
               <img
-                key={i}
-                src={url}
-                alt={`${pl.deviceScreens} ${i + 1}`}
-                style={{ maxHeight: 300, objectFit: 'contain', borderRadius: 'var(--r-sm)' }}
+                src={item.url}
+                alt={item.name}
+                style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)' }}
               />
-            ))}
-          </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
+                {item.name}
+              </div>
+            </div>
+          ))}
         </>
       )}
 

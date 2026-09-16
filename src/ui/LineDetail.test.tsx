@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMockRoot } from '../test/mock-fs';
 import { setRoot, clearRoot } from '../storage/fs';
-import { resetDb } from '../cache/db';
+import { getDb, resetDb } from '../cache/db';
 import { createSite } from '../domain/site-service';
 import { createSurvey } from '../domain/survey-service';
 import { createLine, attachDeviceData } from '../domain/line-service';
@@ -108,6 +109,44 @@ describe('<LineDetail />', () => {
 
     render(<LineDetail lineId={line.id} />);
     expect(await screen.findByText(/fracture-signature/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Изтрий/i })).toBeInTheDocument();
+    // The anomaly delete button is inside the anomaly list item
+    expect(screen.getByText(/fracture-signature/).closest('li')
+      ?.querySelector('button')).toBeInTheDocument();
+  });
+
+  it('shows confirm UI when delete button is clicked', async () => {
+    const line = await seedLine();
+    render(<LineDetail lineId={line.id} />);
+    await screen.findByText('L1');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Изтрий$/i }));
+    expect(await screen.findByText(/Сигурен ли си/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Откажи$/i })).toBeInTheDocument();
+  });
+
+  it('cancel restores the delete button without deleting', async () => {
+    const line = await seedLine();
+    render(<LineDetail lineId={line.id} />);
+    await screen.findByText('L1');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Изтрий$/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Откажи$/i }));
+
+    expect(screen.queryByText(/Сигурен ли си/i)).not.toBeInTheDocument();
+    expect(await getDb().lines.get(line.id)).toBeDefined();
+  });
+
+  it('confirms delete and calls onDeleted', async () => {
+    const line = await seedLine();
+    let deleted = false;
+    render(<LineDetail lineId={line.id} onDeleted={() => { deleted = true; }} />);
+    await screen.findByText('L1');
+
+    await userEvent.click(screen.getByRole('button', { name: /^Изтрий$/i }));
+    const confirmBtns = await screen.findAllByRole('button', { name: /^Изтрий$/i });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
+
+    await waitFor(() => expect(deleted).toBe(true));
+    expect(await getDb().lines.get(line.id)).toBeUndefined();
   });
 });

@@ -156,6 +156,51 @@ export async function updateLine(id: string, patch: LineUpdateInput): Promise<Li
   return next;
 }
 
+export type AttachDeviceDataInput = Pick<Line,
+  'channelSetSnapshot' | 'pointCount' | 'deviceStartPointIndex' | 'deviceLineNumber' | 'mode'
+> & { status?: Line['status'] };
+
+export async function attachDeviceData(id: string, patch: AttachDeviceDataInput): Promise<Line> {
+  const root = getRoot();
+  const db = getDb();
+
+  const row = await db.lines.get(id);
+  if (!row) throw new Error(`line not found: ${id}`);
+  const existing = row.json;
+
+  if (existing.deviceStartPointIndex !== undefined) {
+    throw new Error(
+      `line ${existing.label} has already been attached to device data (deviceStartPointIndex=${existing.deviceStartPointIndex}); create a new line to re-import`,
+    );
+  }
+
+  const now = new Date();
+  const next: Line = {
+    ...existing,
+    channelSetSnapshot: patch.channelSetSnapshot,
+    pointCount: patch.pointCount,
+    deviceStartPointIndex: patch.deviceStartPointIndex,
+    deviceLineNumber: patch.deviceLineNumber,
+    mode: patch.mode,
+    status: patch.status ?? existing.status,
+    updatedAt: now,
+    revision: existing.revision + 1,
+  };
+
+  const svRow = await db.surveys.get(row.surveyId);
+  if (!svRow) throw new Error(`orphan line — survey missing: ${row.surveyId}`);
+  const siteRow = await db.sites.get(svRow.siteId);
+  if (!siteRow) throw new Error(`orphan line — site missing: ${svRow.siteId}`);
+
+  const lineDir = await getPath(root, [
+    'sites', siteRow.folderName, 'surveys', svRow.folderName, 'lines', row.folderName,
+  ]);
+  if (!lineDir) throw new Error(`line folder missing: ${row.folderName}`);
+  await writeJson(lineDir, 'line.json', next);
+  await db.lines.put({ ...row, json: next });
+  return next;
+}
+
 export async function softDeleteLine(id: string): Promise<void> {
   const root = getRoot();
   const db = getDb();

@@ -6,7 +6,7 @@ import { readJson } from '../storage/atomic';
 import { getPath } from '../storage/paths';
 import { createSite } from './site-service';
 import { createSurvey } from './survey-service';
-import { createLine, updateLine, softDeleteLine, defaultChannelSetSnapshot } from './line-service';
+import { createLine, updateLine, softDeleteLine, defaultChannelSetSnapshot, attachDeviceData } from './line-service';
 import type { Vertex } from './types';
 
 let root: FileSystemDirectoryHandle;
@@ -154,5 +154,51 @@ describe('softDeleteLine', () => {
     expect(await getDb().lines.get(line.id)).toBeUndefined();
     const tombs = await getPath(root, ['_tombstones', 'lines']);
     expect(tombs).not.toBeNull();
+  });
+});
+
+describe('attachDeviceData', () => {
+  it('sets channelSetSnapshot, deviceStartPointIndex, and other device fields on first call', async () => {
+    const { survey } = await seedSiteAndSurvey();
+    const line = await createLine(survey.id, {
+      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      mode: 'multi-frequency', dipoleOrientation: 'inline',
+      vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
+    });
+
+    const customChannelSet = defaultChannelSetSnapshot();
+    const attached = await attachDeviceData(line.id, {
+      channelSetSnapshot: { ...customChannelSet, name: 'PQWT 150M 36ch' },
+      pointCount: 18,
+      deviceStartPointIndex: 80,
+      deviceLineNumber: '1',
+      mode: 'multi-frequency',
+      status: 'complete',
+    });
+
+    expect(attached.deviceStartPointIndex).toBe(80);
+    expect(attached.deviceLineNumber).toBe('1');
+    expect(attached.pointCount).toBe(18);
+    expect(attached.status).toBe('complete');
+    expect(attached.channelSetSnapshot.name).toBe('PQWT 150M 36ch');
+    expect(attached.revision).toBe(2);
+  });
+
+  it('refuses a second attach on the same line (§4.9 frozen after first import)', async () => {
+    const { survey } = await seedSiteAndSurvey();
+    const line = await createLine(survey.id, {
+      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      mode: 'multi-frequency', dipoleOrientation: 'inline',
+      vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
+    });
+    const cs = defaultChannelSetSnapshot();
+    await attachDeviceData(line.id, {
+      channelSetSnapshot: cs, pointCount: 18, deviceStartPointIndex: 80,
+      deviceLineNumber: '1', mode: 'multi-frequency', status: 'complete',
+    });
+    await expect(attachDeviceData(line.id, {
+      channelSetSnapshot: cs, pointCount: 18, deviceStartPointIndex: 90,
+      deviceLineNumber: '1', mode: 'multi-frequency',
+    })).rejects.toThrow(/already been attached/i);
   });
 });

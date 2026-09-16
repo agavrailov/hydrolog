@@ -1,5 +1,5 @@
 import type {
-  Site, Survey, Line, RegulatoryContext, Interpretation, DrillOutcome,
+  Site, Survey, Line, RegulatoryContext, Interpretation, DrillOutcome, MediaAsset,
 } from '../domain/types';
 import { readJson } from './atomic';
 import { getPath } from './paths';
@@ -9,6 +9,7 @@ export interface LineScan {
   folderName: string;
   hasDeviceFiles: boolean;
   mediaFiles: string[];
+  deviceMedia: MediaAsset[];
 }
 
 export interface SurveyScan {
@@ -122,7 +123,14 @@ export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanRes
             const mediaDir = await getPath(lnDir, ['media']);
             const mediaFiles = mediaDir ? await listFiles(mediaDir) : [];
 
-            lines.push({ line, folderName: lnFolderName, hasDeviceFiles, mediaFiles });
+            const deviceMedia: MediaAsset[] = [];
+            const allLineFiles = await listFiles(lnDir);
+            for (const f of allLineFiles.filter((n) => /^device-media-\d+\.json$/.test(n))) {
+              const m = await optionalJson<MediaAsset>(lnDir, f);
+              if (m) deviceMedia.push(m);
+            }
+
+            lines.push({ line, folderName: lnFolderName, hasDeviceFiles, mediaFiles, deviceMedia });
           }
         }
 

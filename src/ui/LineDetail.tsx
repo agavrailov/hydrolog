@@ -11,7 +11,6 @@ import { getRoot } from '../storage/fs';
 
 interface Props {
   lineId: string;
-  onBack: () => void;
 }
 
 function useBmpUrls(storagePaths: string[]): string[] {
@@ -55,7 +54,7 @@ function useBmpUrls(storagePaths: string[]): string[] {
   return urls;
 }
 
-export function LineDetail({ lineId, onBack }: Props) {
+export function LineDetail({ lineId }: Props) {
   const row = useLine(lineId);
   const media = useLineMedia(lineId);
   const interpretation = useInterpretation(lineId);
@@ -83,8 +82,6 @@ export function LineDetail({ lineId, onBack }: Props) {
 
   return (
     <section>
-      <button className="btn-ghost" onClick={onBack}>{labels.common.back}</button>
-
       <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-3) 0 var(--space-4)' }}>
         <h1 style={{ margin: 0 }}>{l.label}</h1>
         <code>{ll.title}</code>

@@ -6,11 +6,11 @@ import { finalizeSurvey } from '../domain/survey-service';
 interface Props {
   surveyId: string;
   onEdit: () => void;
-  onBack: () => void;
   onImport: () => void;
+  onOpenLine: (lineId: string) => void;
 }
 
-export function SurveyDetail({ surveyId, onEdit, onBack, onImport }: Props) {
+export function SurveyDetail({ surveyId, onEdit, onImport, onOpenLine }: Props) {
   const row = useSurvey(surveyId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,8 +33,6 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onImport }: Props) {
 
   return (
     <section>
-      <button className="btn-ghost" onClick={onBack}>{labels.common.back}</button>
-
       <header style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>
         <h1 style={{ marginBottom: 4 }}>{l.title}</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
@@ -89,19 +87,19 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onImport }: Props) {
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{l.linesHeading}</h2>
       </div>
-      <LinesList surveyId={surveyId} />
+      <LinesList surveyId={surveyId} onOpen={onOpenLine} />
     </section>
   );
 }
 
-function LinesList({ surveyId }: { surveyId: string }) {
+function LinesList({ surveyId, onOpen }: { surveyId: string; onOpen: (id: string) => void }) {
   const lines = useLines(surveyId);
   if (lines === undefined) return <p className="loading-text">{labels.common.loading}</p>;
   if (lines.length === 0) return <p className="loading-text">{labels.line.noLines}</p>;
   return (
     <>
       {lines.map((r) => (
-        <div key={r.id} className="card">
+        <button key={r.id} className="card card--interactive" onClick={() => onOpen(r.id)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--space-4)', minHeight: 'unset' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)' }}>{r.json.label}</strong>
             <span className={`chip chip--${r.json.status}`}>{r.json.status}</span>
@@ -109,7 +107,7 @@ function LinesList({ surveyId }: { surveyId: string }) {
           <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>
             {r.json.pointCount} точки · {r.json.pointSpacingM} m
           </div>
-        </div>
+        </button>
       ))}
     </>
   );

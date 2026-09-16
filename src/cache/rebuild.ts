@@ -8,11 +8,12 @@ export async function rebuildCache(scan: ScanResult): Promise<{
   const db = getDb();
   let sites = 0, surveys = 0, lines = 0;
 
-  await db.transaction('rw', db.sites, db.surveys, db.lines, db.outcomes, db.meta, async () => {
+  await db.transaction('rw', ['sites', 'surveys', 'lines', 'outcomes', 'media', 'meta'], async () => {
     await db.sites.clear();
     await db.surveys.clear();
     await db.lines.clear();
     await db.outcomes.clear();
+    await db.media.clear();
 
     for (const s of scan.sites) {
       await db.sites.put({
@@ -41,6 +42,17 @@ export async function rebuildCache(scan: ScanResult): Promise<{
             json: ln.line,
           });
           lines++;
+
+          for (const m of ln.deviceMedia) {
+            await db.media.put({
+              id: m.id,
+              linkedKind: m.linkedTo.kind,
+              linkedId: m.linkedTo.id,
+              storagePath: m.storagePath,
+              sha256: m.sha256,
+              json: m,
+            });
+          }
         }
 
         for (const o of sv.outcomes) {

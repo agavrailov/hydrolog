@@ -46,7 +46,7 @@ async function seedLine() {
 describe('<LineDetail />', () => {
   it('renders label, spacing, mode, vertices', async () => {
     const line = await seedLine();
-    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    render(<LineDetail lineId={line.id} />);
     expect(await screen.findByText('L1')).toBeInTheDocument();
     expect(screen.getByText(/точка 1 /)).toBeInTheDocument();
     expect(screen.getByText(/точка 17 /)).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('<LineDetail />', () => {
 
   it('shows no-data hint when points is empty', async () => {
     const line = await seedLine();
-    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    render(<LineDetail lineId={line.id} />);
     expect(await screen.findByText('Профил от устройство')).toBeInTheDocument();
     expect(await screen.findByText(/Все още няма данни от устройство/)).toBeInTheDocument();
   });
@@ -78,7 +78,7 @@ describe('<LineDetail />', () => {
       points: [onePoint],
     });
 
-    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    render(<LineDetail lineId={line.id} />);
     await screen.findByText('Профил от устройство');
     expect(await screen.findByLabelText('Матрица от измервания — цветова скала mV')).toBeInTheDocument();
   });
@@ -106,7 +106,7 @@ describe('<LineDetail />', () => {
       type: 'fracture-signature', confidence: 3,
     });
 
-    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    render(<LineDetail lineId={line.id} />);
     expect(await screen.findByText(/fracture-signature/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Изтрий/i })).toBeInTheDocument();
   });

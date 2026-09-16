@@ -127,7 +127,6 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
         className="form-page"
         style={{ padding: 'var(--space-4)' }}
       >
-        <button type="button" className="btn-ghost" onClick={onCancel} style={{ alignSelf: 'flex-start' }}>{labels.common.back}</button>
         <h2>{l.step1Title}</h2>
         {error && <div role="alert" className="alert alert--error">{error}</div>}
 

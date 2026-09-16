@@ -59,6 +59,12 @@ export async function importPqwtAsNewLine(input: ImportAsNew): Promise<ImportRes
   const svRow = await db.surveys.get(input.surveyId);
   if (!svRow) throw new Error(`survey not found: ${input.surveyId}`);
 
+  const siblings = await db.lines.where('surveyId').equals(input.surveyId).toArray();
+  const duplicate = siblings.find(
+    (r) => r.json.label === input.candidate.folderName && r.json.deviceStartPointIndex !== undefined,
+  );
+  if (duplicate) throw new Error(`Линия ${input.candidate.folderName} вече е импортирана`);
+
   const line = await createLine(input.surveyId, {
     label: input.candidate.folderName,
     pointCount: 17,

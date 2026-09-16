@@ -55,7 +55,6 @@ function SiteDetailRoute({ params }: { params: { id: string } }) {
   return (
     <SiteDetail
       siteId={params.id}
-      onBack={() => setLocation('/')}
       onEdit={() => setLocation(`/sites/${params.id}/edit`)}
       onDeleted={() => setLocation('/')}
       onNewSurvey={() => setLocation(`/sites/${params.id}/surveys/new`)}
@@ -81,8 +80,8 @@ function SurveyDetailRoute({ params }: { params: { id: string; svId: string } })
     <SurveyDetail
       surveyId={params.svId}
       onEdit={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/edit`)}
-      onBack={() => setLocation(`/sites/${params.id}`)}
       onImport={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/import`)}
+      onOpenLine={(lnId) => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/${lnId}`)}
     />
   );
 }
@@ -99,13 +98,7 @@ function LineNewRoute({ params }: { params: { id: string; svId: string } }) {
 }
 
 function LineDetailRoute({ params }: { params: { id: string; svId: string; lnId: string } }) {
-  const [, setLocation] = useLocation();
-  return (
-    <LineDetail
-      lineId={params.lnId}
-      onBack={() => setLocation(`/sites/${params.id}/surveys/${params.svId}`)}
-    />
-  );
+  return <LineDetail lineId={params.lnId} />;
 }
 
 function HomeRoute() {

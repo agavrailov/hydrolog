@@ -8,9 +8,10 @@ interface Props {
   onEdit: () => void;
   onBack: () => void;
   onNewLine: () => void;
+  onImport: () => void;
 }
 
-export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine }: Props) {
+export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: Props) {
   const row = useSurvey(surveyId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,6 +70,7 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine }: Props) {
           <button onClick={onFinalize} disabled={busy}>{l.finalize}</button>
         )}
         <button onClick={onNewLine} disabled={busy}>{labels.line.newLine}</button>
+        <button onClick={onImport} disabled={busy}>{labels.import.surveyDetailButton}</button>
       </div>
 
       <h2>{l.linesHeading}</h2>

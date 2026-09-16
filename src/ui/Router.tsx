@@ -7,6 +7,7 @@ import { SiteDetail } from './SiteDetail';
 import { SurveyDetail } from './SurveyDetail';
 import { LineCaptureScreen } from './LineCaptureScreen';
 import { LineDetail } from './LineDetail';
+import { ImportScreen } from './ImportScreen';
 import { useSite, useSurvey } from '../cache/hooks';
 
 function SiteEditRoute({ params }: { params: { id: string } }) {
@@ -62,6 +63,17 @@ function SiteDetailRoute({ params }: { params: { id: string } }) {
   );
 }
 
+function ImportRoute({ params }: { params: { id: string; svId: string } }) {
+  const [, setLocation] = useLocation();
+  return (
+    <ImportScreen
+      surveyId={params.svId}
+      onDone={() => setLocation(`/sites/${params.id}/surveys/${params.svId}`)}
+      onCancel={() => setLocation(`/sites/${params.id}/surveys/${params.svId}`)}
+    />
+  );
+}
+
 function SurveyDetailRoute({ params }: { params: { id: string; svId: string } }) {
   const [, setLocation] = useLocation();
   return (
@@ -70,6 +82,7 @@ function SurveyDetailRoute({ params }: { params: { id: string; svId: string } })
       onEdit={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/edit`)}
       onBack={() => setLocation(`/sites/${params.id}`)}
       onNewLine={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/new`)}
+      onImport={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/import`)}
     />
   );
 }
@@ -137,6 +150,9 @@ export function Router() {
       </Route>
       <Route path="/sites/:id/surveys/:svId/lines/:lnId">
         {(params) => <LineDetailRoute params={params as { id: string; svId: string; lnId: string }} />}
+      </Route>
+      <Route path="/sites/:id/surveys/:svId/import">
+        {(params) => <ImportRoute params={params as { id: string; svId: string }} />}
       </Route>
       <Route path="/sites/:id/surveys/:svId">
         {(params) => <SurveyDetailRoute params={params as { id: string; svId: string }} />}

@@ -132,7 +132,7 @@ function LineCard({ row, onClick }: { row: LineRow; onClick: () => void }) {
       <div className="line-card__meta">
         <span>{l.pointCount} {labels.line.points}</span>
         <span className="line-card__dot">·</span>
-        <span>{l.pointSpacingM} m</span>
+        <span>{l.spacingM} m</span>
       </div>
     </button>
   );

@@ -56,36 +56,15 @@ describe('defaultChannelSetSnapshot', () => {
 });
 
 describe('createLine', () => {
-  it('validates electrodeSpacingM > pointSpacingM', async () => {
-    const { survey } = await seedSiteAndSurvey();
-    await expect(createLine(survey.id, {
-      pointCount: 17,
-      pointSpacingM: 5,
-      electrodeSpacingM: 5,  // equal, must fail
-      mode: 'multi-frequency',
-      dipoleOrientation: 'inline',
-      vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7803)],
-    })).rejects.toThrow(/electrodeSpacingM/i);
-
-    await expect(createLine(survey.id, {
-      pointCount: 17,
-      pointSpacingM: 5,
-      electrodeSpacingM: 3,  // less than pointSpacing, must fail
-      mode: 'multi-frequency',
-      dipoleOrientation: 'inline',
-      vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7803)],
-    })).rejects.toThrow(/electrodeSpacingM/i);
-  });
-
   it('generates sequential labels L1, L2, ...', async () => {
     const { survey } = await seedSiteAndSurvey();
     const l1 = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
     });
     const l2 = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.33, 23.78), vertex(17, 42.33, 23.7804)],
     });
@@ -96,7 +75,7 @@ describe('createLine', () => {
   it('writes line.json + vertices.geojson under sites/.../surveys/.../lines/L1/', async () => {
     const { site, survey } = await seedSiteAndSurvey();
     const line = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
     });
@@ -107,7 +86,7 @@ describe('createLine', () => {
     ]);
     expect(lineDir).not.toBeNull();
     const persisted = await readJson<typeof line>(lineDir!, 'line.json');
-    expect(persisted.electrodeSpacingM).toBe(5);
+    expect(persisted.spacingM).toBe(2);
     expect(persisted.transformLog).toEqual([]);
     expect(persisted.channelSetSnapshot.units).toBe('mV');
   });
@@ -119,7 +98,7 @@ describe('createLine', () => {
     const cosLat = Math.cos((42.32 * Math.PI) / 180);
     const dLon = ((32 / (R * cosLat)) * 180) / Math.PI;
     const line = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.78 + dLon)],
     });
@@ -131,7 +110,7 @@ describe('updateLine', () => {
   it('bumps updatedAt + revision, rewrites line.json', async () => {
     const { survey } = await seedSiteAndSurvey();
     const line = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
     });
@@ -146,7 +125,7 @@ describe('softDeleteLine', () => {
   it('moves line.json to _tombstones/lines/ and clears the cache row', async () => {
     const { survey } = await seedSiteAndSurvey();
     const line = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
     });
@@ -161,7 +140,7 @@ describe('attachDeviceData', () => {
   it('sets channelSetSnapshot, deviceStartPointIndex, and other device fields on first call', async () => {
     const { survey } = await seedSiteAndSurvey();
     const line = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
     });
@@ -187,7 +166,7 @@ describe('attachDeviceData', () => {
   it('refuses a second attach on the same line (§4.9 frozen after first import)', async () => {
     const { survey } = await seedSiteAndSurvey();
     const line = await createLine(survey.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [vertex(1, 42.32, 23.78), vertex(17, 42.32, 23.7804)],
     });

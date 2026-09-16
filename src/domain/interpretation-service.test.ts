@@ -28,7 +28,7 @@ async function seedLine() {
     precipLast48h: 'none', qualityFlag: 'good',
   });
   return createLine(sv.id, {
-    pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+    pointCount: 17, spacingM: 2,
     mode: 'multi-frequency', dipoleOrientation: 'inline',
     vertices: [v(1), v(17)],
   });

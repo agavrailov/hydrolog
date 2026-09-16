@@ -9,6 +9,7 @@ import type { AnomalyInput } from '../domain/interpretation-service';
 import { updateLine, softDeleteLine } from '../domain/line-service';
 import type { Line } from '../domain/types';
 import { useBmpUrls } from './util/useBmpUrls';
+import { LineMap } from './LineMap';
 
 interface Props {
   lineId: string;
@@ -114,8 +115,7 @@ export function LineDetail({ lineId, onDeleted }: Props) {
 
       <dl className="detail-grid">
         <dt>{ll.fields.pointCount}</dt><dd>{l.pointCount}</dd>
-        <dt>{ll.fields.pointSpacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.pointSpacingM} m</dd>
-        <dt>{ll.fields.electrodeSpacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.electrodeSpacingM} m</dd>
+        <dt>{ll.fields.spacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.spacingM} m</dd>
         <dt>{ll.fields.mode}</dt><dd>{ll.modeOptions[l.mode]}</dd>
         {l.lengthM != null && (<><dt>{ll.lengthM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.lengthM.toFixed(2)} m</dd></>)}
         {hasDeviceData && maxDepthM > 0 && (
@@ -128,6 +128,7 @@ export function LineDetail({ lineId, onDeleted }: Props) {
           <div className="section-heading">
             <h2 style={{ margin: 0 }}>{ll.verticesFixed}</h2>
           </div>
+          <LineMap vertices={l.vertices} />
           <ul style={{ padding: 0, listStyle: 'none' }}>
             {l.vertices.map((v, i) => (
               <li key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '4px 0' }}>

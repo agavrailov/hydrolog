@@ -68,8 +68,7 @@ export async function importPqwtAsNewLine(input: ImportAsNew): Promise<ImportRes
   const line = await createLine(input.surveyId, {
     label: input.candidate.folderName,
     pointCount: 17,
-    pointSpacingM: 1,
-    electrodeSpacingM: 2,
+    spacingM: 1,
     mode: 'multi-frequency',
     dipoleOrientation: 'inline',
     vertices: [],

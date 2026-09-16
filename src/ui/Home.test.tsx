@@ -43,7 +43,7 @@ describe('<Home />', () => {
             folderName: 'L1',
             line: {
               id: 'L1', createdAt: now, updatedAt: now, revision: 1,
-              label: 'L1', pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+              label: 'L1', pointCount: 17, spacingM: 2,
               mode: 'multi-frequency', channelSetSnapshot: stubChannelSet(),
               vertices: [], dipoleOrientation: 'inline', transformLog: [],
               points: [], noiseZones: [], status: 'draft',

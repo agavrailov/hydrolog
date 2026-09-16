@@ -13,8 +13,7 @@ export { defaultChannelSetSnapshot };
 export interface LineCreateInput {
   label?: string;               // if omitted, auto-generated (L1, L2, …)
   pointCount: number;
-  pointSpacingM: number;
-  electrodeSpacingM: number;
+  spacingM: number;
   mode: Line['mode'];
   dipoleOrientation: Line['dipoleOrientation'];
   vertices: Vertex[];
@@ -27,14 +26,6 @@ export interface LineCreateInput {
 export type LineUpdateInput = Partial<
   Omit<Line, 'id' | 'label' | 'createdAt' | 'revision' | 'deletedAt' | 'channelSetSnapshot'>
 >;
-
-function assertSpacing(pointSpacingM: number, electrodeSpacingM: number): void {
-  if (!(electrodeSpacingM > pointSpacingM)) {
-    throw new Error(
-      `electrodeSpacingM (${electrodeSpacingM}) must be strictly greater than pointSpacingM (${pointSpacingM}); check whether they were swapped`,
-    );
-  }
-}
 
 function verticesToGeoJson(vs: Vertex[]) {
   return {
@@ -58,7 +49,6 @@ export async function createLine(
   surveyId: string,
   input: LineCreateInput,
 ): Promise<Line> {
-  assertSpacing(input.pointSpacingM, input.electrodeSpacingM);
 
   const root = getRoot();
   const db = getDb();
@@ -77,8 +67,7 @@ export async function createLine(
     createdAt: now, updatedAt: now, revision: 1,
     label,
     pointCount: input.pointCount,
-    pointSpacingM: input.pointSpacingM,
-    electrodeSpacingM: input.electrodeSpacingM,
+    spacingM: input.spacingM,
     mode: input.mode,
     channelSetSnapshot: defaultChannelSetSnapshot(),
     vertices: input.vertices,
@@ -119,13 +108,6 @@ export async function updateLine(id: string, patch: LineUpdateInput): Promise<Li
   const row = await db.lines.get(id);
   if (!row) throw new Error(`line not found: ${id}`);
   const existing = row.json;
-
-  if (patch.pointSpacingM != null || patch.electrodeSpacingM != null) {
-    assertSpacing(
-      patch.pointSpacingM ?? existing.pointSpacingM,
-      patch.electrodeSpacingM ?? existing.electrodeSpacingM,
-    );
-  }
 
   const nextVertices = patch.vertices ?? existing.vertices;
   const next: Line = {

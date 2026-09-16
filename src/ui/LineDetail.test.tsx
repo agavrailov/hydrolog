@@ -37,7 +37,7 @@ async function seedLine() {
     precipLast48h: 'none', qualityFlag: 'good',
   });
   const line = await createLine(sv.id, {
-    pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+    pointCount: 17, spacingM: 2,
     mode: 'multi-frequency', dipoleOrientation: 'inline',
     vertices: [v(1, 42.32, 23.78), v(17, 42.32, 23.7804)],
   });

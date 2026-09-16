@@ -8,8 +8,8 @@ import { useLastUsed } from './util/useLastUsed';
 import { useSurvey } from '../cache/hooks';
 import { ELECTRODE_LAYOUT, totalElectrodes } from '../domain/device-config';
 
-// Fixed point-spacing (m) per device model. Null = user-configurable.
-const FIXED_POINT_SPACING: Record<string, number | null> = {
+// Fixed spacing (m) per device model. Null = user-configurable.
+const FIXED_SPACING: Record<string, number | null> = {
   'GT-150': 2.5,
 };
 
@@ -17,16 +17,14 @@ type Stage = 'params' | 'p1' | 'anchor' | 'pn' | 'save';
 
 interface Params {
   pointCount: number;
-  pointSpacingM: number;
-  electrodeSpacingM: number;
+  spacingM: number;
   mode: Line['mode'];
   dipoleOrientation: Line['dipoleOrientation'];
 }
 
 const DEFAULT_PARAMS: Params = {
   pointCount: 17,
-  pointSpacingM: 2,
-  electrodeSpacingM: 5,
+  spacingM: 2,
   mode: 'multi-frequency',
   dipoleOrientation: 'inline',
 };
@@ -94,13 +92,13 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
   const [params, setParams] = useState<Params>({ ...DEFAULT_PARAMS, ...lastParams });
   const [error, setError] = useState<string | null>(null);
 
-  const fixedSpacing = survey ? (FIXED_POINT_SPACING[survey.json.deviceModel] ?? null) : null;
+  const fixedSpacing = survey ? (FIXED_SPACING[survey.json.deviceModel] ?? null) : null;
   const electrodeLayout = survey ? (ELECTRODE_LAYOUT[survey.json.deviceModel] ?? null) : null;
   const endElectrodeIndex = electrodeLayout ? totalElectrodes(electrodeLayout) : params.pointCount;
 
   useEffect(() => {
     if (fixedSpacing !== null) {
-      setParams((p) => ({ ...p, pointSpacingM: fixedSpacing }));
+      setParams((p) => ({ ...p, spacingM: fixedSpacing }));
     }
   }, [fixedSpacing]);
 
@@ -146,10 +144,6 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
   if (stage === 'params') {
     const onContinue = () => {
       setError(null);
-      if (!(params.electrodeSpacingM > params.pointSpacingM)) {
-        setError(l.spacingSwapError);
-        return;
-      }
       setLastParams(params);
       setStage('p1');
     };
@@ -173,22 +167,13 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
         />
 
         <Stepper
-          label={ll.fields.pointSpacingM}
-          value={params.pointSpacingM}
-          onChange={(v) => setP('pointSpacingM', v)}
+          label={ll.fields.spacingM}
+          value={params.spacingM}
+          onChange={(v) => setP('spacingM', v)}
           min={0.5}
-          max={50}
-          step={0.5}
-          locked={fixedSpacing !== null}
-        />
-
-        <Stepper
-          label={ll.fields.electrodeSpacingM}
-          value={params.electrodeSpacingM}
-          onChange={(v) => setP('electrodeSpacingM', v)}
-          min={1}
           max={100}
           step={0.5}
+          locked={fixedSpacing !== null}
         />
 
         <div className="field">
@@ -361,8 +346,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
       try {
         const line = await createLine(surveyId, {
           pointCount: params.pointCount,
-          pointSpacingM: params.pointSpacingM,
-          electrodeSpacingM: params.electrodeSpacingM,
+          spacingM: params.spacingM,
           mode: params.mode,
           dipoleOrientation: params.dipoleOrientation,
           vertices: [v1, vN],

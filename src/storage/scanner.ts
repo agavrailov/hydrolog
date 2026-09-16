@@ -109,7 +109,11 @@ export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanRes
             const lnDir = await linesRoot.getDirectoryHandle(lnFolderName);
             let line: Line;
             try {
-              line = await readJson<Line>(lnDir, 'line.json');
+              const raw = await readJson<Line & { pointSpacingM?: number; electrodeSpacingM?: number }>(lnDir, 'line.json');
+              if (raw.spacingM == null) {
+                raw.spacingM = raw.pointSpacingM ?? raw.electrodeSpacingM ?? 2;
+              }
+              line = raw;
             } catch (e) {
               console.warn(`Skipping ${lnFolderName}: missing or invalid line.json —`, e);
               continue;

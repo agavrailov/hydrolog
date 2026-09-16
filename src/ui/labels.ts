@@ -115,8 +115,7 @@ export const labels = {
     deleteConfirm: 'Сигурен ли си, че искаш да изтриеш този профил?',
     fields: {
       pointCount: 'Брой точки',
-      pointSpacingM: 'Разстояние между точки (м)',
-      electrodeSpacingM: 'Разстояние между електродите (м)',
+      spacingM: 'Разстояние между електродите (м)',
       mode: 'Режим',
       dipoleOrientation: 'Ориентация на дипола',
       groundSlopePct: 'Наклон на терена (%)',

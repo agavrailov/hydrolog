@@ -201,7 +201,7 @@ describe('buildLinePoints — GT-150 electrodeLayout', () => {
     expect(pts[17].lon).not.toBeCloseTo(V_END.lon, 4);
   });
 
-  it('consecutive points are spaced exactly pointSpacingM (2.5 m) apart', () => {
+  it('consecutive points are spaced exactly spacingM (2.5 m) apart', () => {
     const pts = build();
     for (let i = 1; i < pts.length; i++) {
       const d = polylineLengthM([pts[i - 1], pts[i]]);

@@ -68,7 +68,7 @@ describe('Phase 1c full line capture flow', () => {
 
     // Create line
     const line = await createLine(sv.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
       vertices: [p1.vertex, pn.vertex],
     });

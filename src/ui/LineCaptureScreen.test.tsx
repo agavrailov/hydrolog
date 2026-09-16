@@ -118,16 +118,4 @@ describe('<LineCaptureScreen /> — full field flow', () => {
     expect(row?.json.vertices[1].electrodeIndex).toBe(17);
     expect(row?.json.point1AnchorMediaId).toBeDefined();
   });
-
-  it('shows the spacing-swap error when electrodeSpacingM <= pointSpacingM', async () => {
-    const { sv } = await seedSurvey();
-    const user = userEvent.setup();
-    render(<LineCaptureScreen surveyId={sv.id} onSaved={() => {}} onCancel={() => {}} />);
-    const eInput = screen.getByLabelText(/разстояние между електродите/i);
-    await user.clear(eInput);
-    await user.type(eInput, '2');
-    // Continue should be disabled OR clicking should show an alert
-    await user.click(screen.getByRole('button', { name: /продължи/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/разстоянието между електродите/i);
-  });
 });

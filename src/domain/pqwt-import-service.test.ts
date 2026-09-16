@@ -36,7 +36,7 @@ async function seedLine() {
     sampleCount: 20, fixedAt: new Date(), electrodeIndex: 1,
   };
   const line = await createLine(sv.id, {
-    pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+    pointCount: 17, spacingM: 2,
     mode: 'multi-frequency', dipoleOrientation: 'inline',
     vertices: [v, { ...v, electrodeIndex: 3, lon: 23.7801 }],
   });

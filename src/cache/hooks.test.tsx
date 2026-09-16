@@ -128,7 +128,7 @@ describe('useLines / useLine', () => {
     json: {
       id, label,
       createdAt: new Date(), updatedAt: new Date(), revision: 1,
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+      pointCount: 17, spacingM: 2,
       mode: 'multi-frequency' as const,
       channelSetSnapshot: {
         name: 'x', deviceModel: 'x', kind: 'frequency' as const,

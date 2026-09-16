@@ -43,22 +43,32 @@ export function Home() {
 
   if (!ready) {
     return (
-      <main style={{ padding: 16, fontFamily: 'system-ui, sans-serif' }}>
-        <h1>HydroLog</h1>
-        <button onClick={onPick} disabled={loading}>
-          {loading ? labels.home.scanning : labels.home.pickFolder}
-        </button>
-      </main>
+      <div className="app-shell">
+        <header className="app-header">
+          <span className="app-header__title">HydroLog</span>
+        </header>
+        <main className="app-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-5)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>HydroLog</h1>
+            <p style={{ color: 'var(--text-muted)', maxWidth: 280 }}>Изберете работната папка за да продължите</p>
+          </div>
+          <button className="btn-primary" onClick={onPick} disabled={loading} style={{ maxWidth: 280, width: '100%' }}>
+            {loading ? `⟳ ${labels.home.scanning}` : `📂 ${labels.home.pickFolder}`}
+          </button>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main style={{ padding: 16, fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>HydroLog</h1>
+    <div className="app-shell">
+      <header className="app-header">
+        <span className="app-header__title">HydroLog</span>
         <SyncIndicator hoursSinceSync={hours} />
       </header>
-      <Router />
-    </main>
+      <main className="app-content">
+        <Router />
+      </main>
+    </div>
   );
 }

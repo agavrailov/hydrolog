@@ -1,0 +1,54 @@
+:root {
+  /* ── Surfaces ── */
+  --bg-base:       #0d1b2a;
+  --bg-surface:    #152236;
+  --bg-elevated:   #1c2f45;
+  --bg-input:      #0f2135;
+  --bg-tap-active: #1e3a57;
+
+  /* ── Brand ── */
+  --color-primary:     #f59e0b;
+  --color-primary-dim: #92600a;
+  --color-secondary:   #38bdf8;
+  --color-danger:      #f87171;
+  --color-success:     #34d399;
+  --color-warn:        #fb923c;
+
+  /* ── Text ── */
+  --text-base:       #d1e4f5;
+  --text-muted:      #607d93;
+  --text-faint:      #354f66;
+  --text-on-primary: #0d1b2a;
+
+  /* ── Borders ── */
+  --border-subtle: rgba(56, 189, 248, 0.12);
+  --border-input:  rgba(56, 189, 248, 0.25);
+  --border-focus:  #38bdf8;
+
+  /* ── Radii ── */
+  --r-sm:   6px;
+  --r-md:   12px;
+  --r-lg:   20px;
+  --r-pill: 999px;
+
+  /* ── Spacing ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* ── Touch ── */
+  --touch-min: 48px;
+  --input-h:   52px;
+  --header-h:  56px;
+
+  /* ── Typography ── */
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* ── Shadows ── */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-fab:  0 4px 16px rgba(245, 158, 11, 0.4);
+}

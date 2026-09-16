@@ -21,9 +21,9 @@ describe('<SiteForm mode="create">', () => {
     await userEvent.type(screen.getByLabelText(/име/i), 'Ivanov');
     await userEvent.type(screen.getByLabelText(/населено място/i), 'Долна Баня');
     await userEvent.type(screen.getByLabelText(/община/i), 'Долна Баня');
-    await userEvent.type(screen.getByLabelText(/област/i), 'Софийска');
-    await userEvent.type(screen.getByLabelText(/ширина/i), '42.32');
-    await userEvent.type(screen.getByLabelText(/дължина/i), '23.78');
+    await userEvent.selectOptions(screen.getByLabelText(/Област/i), 'Софийска');
+    await userEvent.type(screen.getByLabelText(/Ширина/i), '42.32');
+    await userEvent.type(screen.getByLabelText(/Дължина/i), '23.78');
 
     await userEvent.click(screen.getByRole('button', { name: /запази/i }));
 
@@ -42,9 +42,9 @@ describe('<SiteForm mode="create">', () => {
     await userEvent.type(screen.getByLabelText(/име/i), 'X');
     await userEvent.type(screen.getByLabelText(/населено място/i), 'Долна Баня');
     await userEvent.type(screen.getByLabelText(/община/i), 'Долна Баня');
-    await userEvent.type(screen.getByLabelText(/област/i), 'Софийска');
-    await userEvent.type(screen.getByLabelText(/ширина/i), '0');
-    await userEvent.type(screen.getByLabelText(/дължина/i), '0');
+    await userEvent.selectOptions(screen.getByLabelText(/Област/i), 'Софийска');
+    await userEvent.type(screen.getByLabelText(/Ширина/i), '0');
+    await userEvent.type(screen.getByLabelText(/Дължина/i), '0');
     await userEvent.click(screen.getByRole('button', { name: /запази/i }));
 
     const alert = await screen.findByRole('alert');

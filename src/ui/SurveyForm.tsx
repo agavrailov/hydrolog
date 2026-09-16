@@ -1,8 +1,9 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { labels } from './labels';
 import type { Survey } from '../domain/types';
 import type { SurveyRow } from '../cache/db';
 import { createSurvey, updateSurvey, type SurveyCreateInput } from '../domain/survey-service';
+import { useLastUsed } from './util/useLastUsed';
 
 type CreateProps = {
   mode: 'create';
@@ -21,7 +22,7 @@ type EditProps = {
 type Props = CreateProps | EditProps;
 
 interface FormState {
-  startedAt: string;        // datetime-local value: "YYYY-MM-DDTHH:mm"
+  startedAt: string;
   endedAt: string;
   timezone: string;
   operator: string;
@@ -35,6 +36,10 @@ interface FormState {
   purpose: string;
   summary: string;
   qualityFlag: Survey['qualityFlag'];
+}
+
+function detectTimezone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'Europe/Sofia'; }
 }
 
 function toLocalInput(d: Date): string {
@@ -69,9 +74,9 @@ function initialFromRow(row: SurveyRow): FormState {
 const EMPTY: FormState = {
   startedAt: toLocalInput(new Date()),
   endedAt: '',
-  timezone: 'Europe/Sofia',
+  timezone: detectTimezone(),
   operator: '',
-  deviceModel: 'PQWT-TC300',
+  deviceModel: 'GT-150',
   deviceSerial: '',
   firmware: '',
   weather: '',
@@ -83,12 +88,30 @@ const EMPTY: FormState = {
   qualityFlag: 'good',
 };
 
+const DEVICE_MODELS = ['GT-150', 'PQWT-TC150', 'PQWT-TC300', 'PQWT-TC500'];
+
 export function SurveyForm(props: Props) {
   const initial = props.mode === 'edit' ? initialFromRow(props.surveyRow) : EMPTY;
   const [state, setState] = useState<FormState>(initial);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editReason, setEditReason] = useState('');
+
+  const [lastOperator, setLastOperator] = useLastUsed('operator', '');
+  const [lastDeviceModel, setLastDeviceModel] = useLastUsed('deviceModel', 'GT-150');
+  const [lastDeviceSerial, setLastDeviceSerial] = useLastUsed('deviceSerial', '');
+
+  useEffect(() => {
+    if (props.mode === 'create') {
+      setState((s) => ({
+        ...s,
+        operator: lastOperator || s.operator,
+        deviceModel: lastDeviceModel || s.deviceModel,
+        deviceSerial: lastDeviceSerial || s.deviceSerial,
+      }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isFinalized = props.mode === 'edit' && !!props.surveyRow.json.finalizedAt;
 
@@ -124,6 +147,9 @@ export function SurveyForm(props: Props) {
       };
       if (props.mode === 'create') {
         const sv = await createSurvey(props.siteId, base);
+        setLastOperator(state.operator);
+        setLastDeviceModel(state.deviceModel);
+        setLastDeviceSerial(state.deviceSerial);
         props.onSaved(sv);
       } else {
         const sv = await updateSurvey(props.surveyRow.id, base, {
@@ -139,78 +165,137 @@ export function SurveyForm(props: Props) {
   };
 
   const l = labels.survey;
+
   return (
-    <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 480 }}>
+    <form onSubmit={onSubmit} className="form-page">
       <h2>{props.mode === 'create' ? l.createTitle : l.editTitle}</h2>
 
-      {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
+      {error && <div role="alert" className="alert alert--error">{error}</div>}
 
-      <label>{l.fields.startedAt}
+      <label className="field">
+        <span className="field__label field__label--required">{l.fields.startedAt}</span>
         <input type="datetime-local" value={state.startedAt}
                onChange={(e) => set('startedAt', e.target.value)} required />
       </label>
-      <label>{l.fields.endedAt}
+
+      <label className="field">
+        <span className="field__label">{l.fields.endedAt}</span>
         <input type="datetime-local" value={state.endedAt}
                onChange={(e) => set('endedAt', e.target.value)} />
       </label>
-      <label>{l.fields.timezone}
+
+      <label className="field">
+        <span className="field__label field__label--required">{l.fields.timezone}</span>
         <input value={state.timezone} onChange={(e) => set('timezone', e.target.value)} required />
       </label>
-      <label>{l.fields.operator}
+
+      <label className="field">
+        <span className="field__label field__label--required">{l.fields.operator}</span>
         <input value={state.operator} onChange={(e) => set('operator', e.target.value)} required />
       </label>
-      <label>{l.fields.deviceModel}
-        <input value={state.deviceModel} onChange={(e) => set('deviceModel', e.target.value)} required />
-      </label>
-      <label>{l.fields.deviceSerial}
+
+      <div className="field">
+        <span className="field__label field__label--required">{l.fields.deviceModel}</span>
+        <div className="tap-group" style={{ marginBottom: 'var(--space-2)' }}>
+          {DEVICE_MODELS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={`tap-btn${state.deviceModel === m ? ' tap-btn--active' : ''}`}
+              onClick={() => set('deviceModel', m)}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <input
+          id="survey-deviceModel"
+          value={state.deviceModel}
+          onChange={(e) => set('deviceModel', e.target.value)}
+          required
+          aria-label={l.fields.deviceModel}
+        />
+      </div>
+
+      <label className="field">
+        <span className="field__label field__label--required">{l.fields.deviceSerial}</span>
         <input value={state.deviceSerial} onChange={(e) => set('deviceSerial', e.target.value)} required />
       </label>
-      <label>{l.fields.firmware}
+
+      <label className="field">
+        <span className="field__label">{l.fields.firmware}</span>
         <input value={state.firmware} onChange={(e) => set('firmware', e.target.value)} />
       </label>
-      <label>{l.fields.weather}
+
+      <div className="field">
+        <span className="field__label">{l.fields.precipLast48h}</span>
+        <div className="tap-group">
+          {(Object.keys(l.precipOptions) as (keyof typeof l.precipOptions)[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`tap-btn${state.precipLast48h === k ? ' tap-btn--active' : ''}`}
+              onClick={() => set('precipLast48h', k)}
+            >
+              {l.precipOptions[k]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="field">
+        <span className="field__label">{l.fields.qualityFlag}</span>
+        <div className="tap-group">
+          {(Object.keys(l.qualityOptions) as (keyof typeof l.qualityOptions)[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`tap-btn${state.qualityFlag === k ? ' tap-btn--active' : ''}`}
+              onClick={() => set('qualityFlag', k)}
+            >
+              {l.qualityOptions[k]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="field">
+        <span className="field__label">{l.fields.weather}</span>
         <input value={state.weather} onChange={(e) => set('weather', e.target.value)} />
       </label>
-      <label>{l.fields.airTempC}
+
+      <label className="field">
+        <span className="field__label">{l.fields.airTempC}</span>
         <input type="number" step="any" value={state.airTempC}
                onChange={(e) => set('airTempC', e.target.value)} />
       </label>
-      <label>{l.fields.precipLast48h}
-        <select value={state.precipLast48h}
-                onChange={(e) => set('precipLast48h', e.target.value as Survey['precipLast48h'])}>
-          {(Object.keys(l.precipOptions) as (keyof typeof l.precipOptions)[]).map((k) => (
-            <option key={k} value={k}>{l.precipOptions[k]}</option>
-          ))}
-        </select>
-      </label>
-      <label>{l.fields.terrain}
+
+      <label className="field">
+        <span className="field__label">{l.fields.terrain}</span>
         <input value={state.terrain} onChange={(e) => set('terrain', e.target.value)} />
       </label>
-      <label>{l.fields.purpose}
+
+      <label className="field">
+        <span className="field__label">{l.fields.purpose}</span>
         <input value={state.purpose} onChange={(e) => set('purpose', e.target.value)} />
       </label>
-      <label>{l.fields.summary}
+
+      <label className="field">
+        <span className="field__label">{l.fields.summary}</span>
         <textarea value={state.summary} onChange={(e) => set('summary', e.target.value)} />
-      </label>
-      <label>{l.fields.qualityFlag}
-        <select value={state.qualityFlag}
-                onChange={(e) => set('qualityFlag', e.target.value as Survey['qualityFlag'])}>
-          {(Object.keys(l.qualityOptions) as (keyof typeof l.qualityOptions)[]).map((k) => (
-            <option key={k} value={k}>{l.qualityOptions[k]}</option>
-          ))}
-        </select>
       </label>
 
       {isFinalized && (
-        <label>{l.editReasonLabel}
+        <label className="field">
+          <span className="field__label field__label--required">{l.editReasonLabel}</span>
           <textarea value={editReason} onChange={(e) => setEditReason(e.target.value)}
-                    aria-required="true" />
+                    aria-required="true" aria-label={l.editReasonLabel} />
         </label>
       )}
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="submit" disabled={saving}>{labels.common.save}</button>
-        <button type="button" onClick={props.onCancel} disabled={saving}>{labels.common.cancel}</button>
+      <div className="btn-row">
+        <button type="submit" className="btn-primary" disabled={saving}>{labels.common.save}</button>
+        <button type="button" className="btn-secondary" onClick={props.onCancel} disabled={saving}>{labels.common.cancel}</button>
       </div>
     </form>
   );

@@ -16,7 +16,7 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  if (!row) return <p>{labels.common.loading}</p>;
+  if (!row) return <p className="loading-text">{labels.common.loading}</p>;
   const s = row.json;
   const l = labels.survey;
 
@@ -33,27 +33,28 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
   };
 
   return (
-    <section style={{ padding: 16, maxWidth: 720 }}>
-      <button onClick={onBack}>{labels.common.back}</button>
+    <section>
+      <button className="btn-ghost" onClick={onBack}>{labels.common.back}</button>
 
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-        <h1 style={{ margin: 0 }}>{l.title}</h1>
-        <code>{row.folderName}</code>
+      <header style={{ margin: 'var(--space-3) 0 var(--space-4)' }}>
+        <h1 style={{ marginBottom: 4 }}>{l.title}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <code>{row.folderName}</code>
+          {s.finalizedAt && (
+            <span className="chip chip--complete">{l.finalized}</span>
+          )}
+        </div>
       </header>
 
-      {s.finalizedAt && (
-        <p>{l.finalized}: {new Date(s.finalizedAt).toLocaleString('bg-BG')}</p>
-      )}
+      {error && <div role="alert" className="alert alert--error">{error}</div>}
 
-      {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
-
-      <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px 16px' }}>
+      <dl className="detail-grid">
         <dt>{l.fields.startedAt}</dt><dd>{new Date(s.startedAt).toLocaleString('bg-BG')}</dd>
         {s.endedAt && (<><dt>{l.fields.endedAt}</dt><dd>{new Date(s.endedAt).toLocaleString('bg-BG')}</dd></>)}
         <dt>{l.fields.timezone}</dt><dd>{s.timezone}</dd>
         <dt>{l.fields.operator}</dt><dd>{s.operator}</dd>
-        <dt>{l.fields.deviceModel}</dt><dd>{s.deviceModel}</dd>
-        <dt>{l.fields.deviceSerial}</dt><dd>{s.deviceSerial}</dd>
+        <dt>{l.fields.deviceModel}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.deviceModel}</dd>
+        <dt>{l.fields.deviceSerial}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.deviceSerial}</dd>
         {s.firmware && (<><dt>{l.fields.firmware}</dt><dd>{s.firmware}</dd></>)}
         {s.weather && (<><dt>{l.fields.weather}</dt><dd>{s.weather}</dd></>)}
         {s.airTempC != null && (<><dt>{l.fields.airTempC}</dt><dd>{s.airTempC}</dd></>)}
@@ -64,16 +65,18 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
         <dt>{l.fields.qualityFlag}</dt><dd>{l.qualityOptions[s.qualityFlag]}</dd>
       </dl>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button onClick={onEdit} disabled={busy}>{labels.common.edit}</button>
+      <div className="btn-row">
+        <button className="btn-secondary" onClick={onEdit} disabled={busy}>{labels.common.edit}</button>
         {!s.finalizedAt && (
-          <button onClick={onFinalize} disabled={busy}>{l.finalize}</button>
+          <button className="btn-secondary" onClick={onFinalize} disabled={busy}>{l.finalize}</button>
         )}
-        <button onClick={onNewLine} disabled={busy}>{labels.line.newLine}</button>
-        <button onClick={onImport} disabled={busy}>{labels.import.surveyDetailButton}</button>
+        <button className="btn-primary" onClick={onNewLine} disabled={busy}>{labels.line.newLine}</button>
+        <button className="btn-secondary" onClick={onImport} disabled={busy}>{labels.import.surveyDetailButton}</button>
       </div>
 
-      <h2>{l.linesHeading}</h2>
+      <div className="section-heading">
+        <h2 style={{ margin: 0 }}>{l.linesHeading}</h2>
+      </div>
       <LinesList surveyId={surveyId} />
     </section>
   );
@@ -81,15 +84,21 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
 
 function LinesList({ surveyId }: { surveyId: string }) {
   const lines = useLines(surveyId);
-  if (lines === undefined) return <p>{labels.common.loading}</p>;
-  if (lines.length === 0) return <p>{labels.line.noLines}</p>;
+  if (lines === undefined) return <p className="loading-text">{labels.common.loading}</p>;
+  if (lines.length === 0) return <p className="loading-text">{labels.line.noLines}</p>;
   return (
-    <ul>
+    <>
       {lines.map((r) => (
-        <li key={r.id}>
-          <strong>{r.json.label}</strong> · {r.json.pointCount} точки, {r.json.pointSpacingM} m spacing
-        </li>
+        <div key={r.id} className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)' }}>{r.json.label}</strong>
+            <span className={`chip chip--${r.json.status}`}>{r.json.status}</span>
+          </div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>
+            {r.json.pointCount} точки · {r.json.pointSpacingM} m
+          </div>
+        </div>
       ))}
-    </ul>
+    </>
   );
 }

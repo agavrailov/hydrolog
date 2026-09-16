@@ -111,12 +111,10 @@ function LineDetailRoute({ params }: { params: { id: string; svId: string; lnId:
 function HomeRoute() {
   const [, setLocation] = useLocation();
   return (
-    <div>
-      <button onClick={() => setLocation('/sites/new')} style={{ marginBottom: 8 }}>
-        {labels.home.newSite}
-      </button>
-      <SiteList onOpen={(id) => setLocation(`/sites/${id}`)} />
-    </div>
+    <SiteList
+      onOpen={(id) => setLocation(`/sites/${id}`)}
+      onNew={() => setLocation('/sites/new')}
+    />
   );
 }
 

@@ -4,6 +4,7 @@ import type { Vertex, Line } from '../domain/types';
 import { sampleVertex } from '../domain/gps-sampling';
 import { createLine, type LineCreateInput, updateLine } from '../domain/line-service';
 import { captureAnchorPhoto } from '../domain/anchor-photo';
+import { useLastUsed } from './util/useLastUsed';
 
 type Stage = 'params' | 'p1' | 'anchor' | 'pn' | 'save';
 
@@ -29,9 +30,51 @@ interface Props {
   onCancel: () => void;
 }
 
+interface StepperProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+}
+
+function Stepper({ label, value, onChange, min, max, step = 1 }: StepperProps) {
+  return (
+    <div className="field">
+      <span className="field__label">{label}</span>
+      <div className="stepper">
+        <button
+          type="button"
+          className="stepper__btn"
+          onClick={() => onChange(Math.max(min, parseFloat((value - step).toFixed(4))))}
+          disabled={value <= min}
+        >−</button>
+        <input
+          aria-label={label}
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+        <button
+          type="button"
+          className="stepper__btn"
+          onClick={() => onChange(Math.min(max, parseFloat((value + step).toFixed(4))))}
+          disabled={value >= max}
+        >+</button>
+      </div>
+    </div>
+  );
+}
+
 export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
+  const [lastParams, setLastParams] = useLastUsed<Params>('lineParams', DEFAULT_PARAMS);
+
   const [stage, setStage] = useState<Stage>('params');
-  const [params, setParams] = useState<Params>(DEFAULT_PARAMS);
+  const [params, setParams] = useState<Params>({ ...DEFAULT_PARAMS, ...lastParams });
   const [error, setError] = useState<string | null>(null);
   const [v1, setV1] = useState<Vertex | null>(null);
   const [vN, setVN] = useState<Vertex | null>(null);
@@ -46,7 +89,6 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
   const setP = <K extends keyof Params>(k: K, v: Params[K]) =>
     setParams((p) => ({ ...p, [k]: v }));
 
-  // ─── Stage helper: sample a vertex ────────────────
   const startSampling = async (atPointIndex: number) => {
     setError(null);
     setSampling(true);
@@ -75,62 +117,80 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
         setError(l.spacingSwapError);
         return;
       }
+      setLastParams(params);
       setStage('p1');
     };
+
     return (
-      <form onSubmit={(e) => { e.preventDefault(); onContinue(); }} style={{ padding: 16, display: 'grid', gap: 8, maxWidth: 480 }}>
+      <form
+        onSubmit={(e) => { e.preventDefault(); onContinue(); }}
+        className="form-page"
+        style={{ padding: 'var(--space-4)' }}
+      >
         <h2>{l.step1Title}</h2>
-        {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
-        <label>
-          {ll.fields.pointCount}
-          <input
-            type="number"
-            min={5}
-            max={999}
-            value={params.pointCount}
-            onChange={(e) => setP('pointCount', Number(e.target.value))}
-          />
-        </label>
-        <label>
-          {ll.fields.pointSpacingM}
-          <input
-            type="number"
-            step="0.1"
-            value={params.pointSpacingM}
-            onChange={(e) => setP('pointSpacingM', Number(e.target.value))}
-          />
-        </label>
-        <label>
-          {ll.fields.electrodeSpacingM}
-          <input
-            type="number"
-            step="0.1"
-            value={params.electrodeSpacingM}
-            onChange={(e) => setP('electrodeSpacingM', Number(e.target.value))}
-          />
-        </label>
-        <label>
-          {ll.fields.mode}
-          <select value={params.mode} onChange={(e) => setP('mode', e.target.value as Params['mode'])}>
+        {error && <div role="alert" className="alert alert--error">{error}</div>}
+
+        <Stepper
+          label={ll.fields.pointCount}
+          value={params.pointCount}
+          onChange={(v) => setP('pointCount', v)}
+          min={5}
+          max={999}
+        />
+
+        <Stepper
+          label={ll.fields.pointSpacingM}
+          value={params.pointSpacingM}
+          onChange={(v) => setP('pointSpacingM', v)}
+          min={0.5}
+          max={50}
+          step={0.5}
+        />
+
+        <Stepper
+          label={ll.fields.electrodeSpacingM}
+          value={params.electrodeSpacingM}
+          onChange={(v) => setP('electrodeSpacingM', v)}
+          min={1}
+          max={100}
+          step={0.5}
+        />
+
+        <div className="field">
+          <span className="field__label">{ll.fields.mode}</span>
+          <div className="tap-group">
             {(Object.keys(ll.modeOptions) as (keyof typeof ll.modeOptions)[]).map((k) => (
-              <option key={k} value={k}>{ll.modeOptions[k]}</option>
+              <button
+                key={k}
+                type="button"
+                className={`tap-btn${params.mode === k ? ' tap-btn--active' : ''}`}
+                onClick={() => setP('mode', k)}
+              >
+                {ll.modeOptions[k]}
+              </button>
             ))}
-          </select>
-        </label>
-        <label>
-          {ll.fields.dipoleOrientation}
-          <select
-            value={params.dipoleOrientation}
-            onChange={(e) => setP('dipoleOrientation', e.target.value as Params['dipoleOrientation'])}
-          >
+          </div>
+        </div>
+
+        <div className="field">
+          <span className="field__label">{ll.fields.dipoleOrientation}</span>
+          <div className="tap-group">
             {(Object.keys(ll.dipoleOptions) as (keyof typeof ll.dipoleOptions)[]).map((k) => (
-              <option key={k} value={k}>{ll.dipoleOptions[k]}</option>
+              <button
+                key={k}
+                type="button"
+                className={`tap-btn${params.dipoleOrientation === k ? ' tap-btn--active' : ''}`}
+                onClick={() => setP('dipoleOrientation', k)}
+              >
+                {ll.dipoleOptions[k]}
+              </button>
             ))}
-          </select>
-        </label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={onContinue}>{labels.common.continue}</button>
-          <button type="button" onClick={onCancel}>{labels.common.cancel}</button>
+          </div>
+        </div>
+
+        <div className="btn-row">
+          <button type="button" className="btn-primary" onClick={onContinue}>{labels.common.continue}</button>
+          <button type="button" className="btn-secondary" onClick={onCancel}>{labels.common.cancel}</button>
         </div>
       </form>
     );
@@ -141,43 +201,68 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
     const atPointIndex = stage === 'p1' ? 1 : params.pointCount;
     const currentVertex = stage === 'p1' ? v1 : vN;
     const stepTitle = stage === 'p1' ? l.step2Title : l.step4Title;
+
     return (
-      <section style={{ padding: 16, display: 'grid', gap: 8, maxWidth: 480 }}>
+      <section style={{ padding: 'var(--space-4)', maxWidth: 480 }}>
         <h2>{stepTitle}</h2>
-        {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
+        {error && <div role="alert" className="alert alert--error">{error}</div>}
+
         {!currentVertex && (
-          <button type="button" onClick={() => startSampling(atPointIndex)} disabled={sampling}>
+          <button type="button" className="btn-primary btn-full" onClick={() => startSampling(atPointIndex)} disabled={sampling}>
             {l.gpsStart}
           </button>
         )}
+
         {sampling && samplingProgress && (
-          <p>
-            {l.gpsSampling} {samplingProgress.n} {l.gpsSampleCount} · {l.gpsAccuracy}{' '}
-            {samplingProgress.acc.toFixed(1)} {l.gpsMeters}
-            <br />
-            <small>{l.keepScreenOn}</small>
-          </p>
+          <div className="gps-progress">
+            <div className="gps-ring" />
+            <p style={{ textAlign: 'center' }}>
+              <strong>{samplingProgress.n}</strong> {l.gpsSampleCount}<br />
+              <span style={{ color: 'var(--text-muted)' }}>
+                {l.gpsAccuracy} {samplingProgress.acc.toFixed(1)} {l.gpsMeters}
+              </span>
+            </p>
+            <small className="alert alert--info">{l.keepScreenOn}</small>
+          </div>
         )}
+
         {currentVertex && (
           <>
-            <p>
-              Lat {currentVertex.lat.toFixed(6)} · Lon {currentVertex.lon.toFixed(6)}
-              <br />
-              hAccM {currentVertex.hAccM.toFixed(1)} {l.gpsMeters} · {currentVertex.sampleCount}{' '}
-              {l.gpsSampleCount}
-            </p>
+            <div className="coord-display">
+              <div className="coord-display__row">
+                <span className="coord-display__label">Lat</span>
+                <span className="coord-display__value">{currentVertex.lat.toFixed(6)}</span>
+              </div>
+              <div className="coord-display__row">
+                <span className="coord-display__label">Lon</span>
+                <span className="coord-display__value">{currentVertex.lon.toFixed(6)}</span>
+              </div>
+              <div className="coord-display__row">
+                <span className="coord-display__label">Точност</span>
+                <span
+                  className="coord-display__value"
+                  style={{ color: currentVertex.hAccM > 15 ? 'var(--color-warn)' : 'var(--color-success)' }}
+                >
+                  ±{currentVertex.hAccM.toFixed(1)} м
+                </span>
+              </div>
+            </div>
+
             {currentVertex.hAccM > 15 && (
-              <div role="alert" style={{ color: 'orange' }}>{l.gpsWarnAccuracy}</div>
+              <div role="alert" className="alert alert--warn">{l.gpsWarnAccuracy}</div>
             )}
-            <div style={{ display: 'flex', gap: 8 }}>
+
+            <div className="btn-row">
               <button
                 type="button"
+                className="btn-primary"
                 onClick={() => setStage(stage === 'p1' ? 'anchor' : 'save')}
               >
                 {labels.common.continue}
               </button>
               <button
                 type="button"
+                className="btn-secondary"
                 onClick={() => {
                   if (stage === 'p1') setV1(null);
                   else setVN(null);
@@ -201,18 +286,21 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
       setPendingAnchor(file);
     };
     return (
-      <section style={{ padding: 16, display: 'grid', gap: 8, maxWidth: 480 }}>
+      <section style={{ padding: 'var(--space-4)', maxWidth: 480 }}>
         <h2>{l.step3Title}</h2>
-        {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
-        <p>{l.guideBearing}</p>
-        <label>
-          {l.anchorTake}
+        {error && <div role="alert" className="alert alert--error">{error}</div>}
+        <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-3)' }}>{l.guideBearing}</p>
+        <label className="field">
+          <span className="field__label">{l.anchorTake}</span>
           <input type="file" accept="image/*" capture="environment" onChange={onFile} />
         </label>
-        {pendingAnchor && <p>✓ {pendingAnchor.name}</p>}
-        <div style={{ display: 'flex', gap: 8 }}>
+        {pendingAnchor && (
+          <p style={{ color: 'var(--color-success)', marginBottom: 'var(--space-3)' }}>✓ {pendingAnchor.name}</p>
+        )}
+        <div className="btn-row">
           <button
             type="button"
+            className="btn-primary"
             onClick={() => setStage('pn')}
             disabled={!pendingAnchor || busy}
           >
@@ -256,11 +344,12 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
         setBusy(false);
       }
     };
+
     return (
-      <section style={{ padding: 16, display: 'grid', gap: 8, maxWidth: 480 }}>
+      <section style={{ padding: 'var(--space-4)', maxWidth: 480 }}>
         <h2>{l.step5Title}</h2>
-        {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
-        <button type="button" onClick={onSave} disabled={busy}>
+        {error && <div role="alert" className="alert alert--error">{error}</div>}
+        <button type="button" className="btn-primary btn-full" onClick={onSave} disabled={busy}>
           {busy ? l.saving : l.save}
         </button>
       </section>

@@ -4,42 +4,50 @@ import { useSites } from '../cache/hooks';
 
 interface Props {
   onOpen: (siteId: string) => void;
+  onNew?: () => void;
 }
 
-export function SiteList({ onOpen }: Props) {
+export function SiteList({ onOpen, onNew }: Props) {
   const [query, setQuery] = useState('');
   const sites = useSites({ query });
-
-  if (sites === undefined) return <p>{labels.common.loading}</p>;
+  const l = labels.site;
 
   return (
     <div>
-      <input
-        type="search"
-        placeholder={labels.common.search}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        style={{ width: '100%', padding: 8, marginBottom: 8 }}
-      />
-      {sites.length === 0 ? (
-        <p>{labels.home.noSites}</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {sites.map((s) => (
-            <li key={s.id} style={{ padding: '4px 0' }}>
-              <button
-                onClick={() => onOpen(s.id)}
-                style={{
-                  background: 'none', border: 'none', padding: 0,
-                  color: 'steelblue', cursor: 'pointer', textDecoration: 'underline',
-                  fontSize: 'inherit', fontFamily: 'inherit',
-                }}
-              >
-                <strong>{s.code}</strong> — {s.json.name} ({s.json.settlement})
-              </button>
-            </li>
-          ))}
-        </ul>
+      <div className="section-heading">
+        <h2 style={{ margin: 0 }}>{labels.home.sitesHeading}</h2>
+      </div>
+
+      <div className="search-bar">
+        <input
+          type="search"
+          placeholder={labels.common.search}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      {sites === undefined && <p className="loading-text">{labels.common.loading}</p>}
+      {sites?.length === 0 && <p className="loading-text">{labels.home.noSites}</p>}
+
+      {sites?.map((s) => (
+        <button
+          key={s.id}
+          className="card card--interactive"
+          style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--space-4)', minHeight: 'unset' }}
+          onClick={() => onOpen(s.id)}
+        >
+          <div className="site-card__row">
+            <span className="site-card__code">{s.code}</span>
+            <span className={`chip chip--${s.json.status}`}>{l.statusOptions[s.json.status]}</span>
+          </div>
+          <div className="site-card__name">{s.json.name}</div>
+          <div className="site-card__meta">{s.json.settlement} · {s.json.municipality}</div>
+        </button>
+      ))}
+
+      {onNew && (
+        <button className="fab" onClick={onNew} aria-label={labels.home.newSite}>+</button>
       )}
     </div>
   );

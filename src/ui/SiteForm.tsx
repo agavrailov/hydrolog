@@ -3,6 +3,9 @@ import { labels } from './labels';
 import type { Site } from '../domain/types';
 import type { SiteRow } from '../cache/db';
 import { createSite, updateSite, type SiteCreateInput, type SiteUpdateInput } from '../domain/site-service';
+import { useGeoLocation } from './util/useGeoLocation';
+import { reverseGeocode } from './util/reverseGeocode';
+import { BG_REGIONS } from './BG_REGIONS';
 
 type CreateProps = {
   mode: 'create';
@@ -58,7 +61,7 @@ const EMPTY: FormState = {
   ekatte: '',
   cadastralParcelId: '',
   municipality: '',
-  region: '',
+  region: 'Софийска',
   centroidLat: '',
   centroidLon: '',
   accessNotes: '',
@@ -72,9 +75,29 @@ export function SiteForm(props: Props) {
   const [state, setState] = useState<FormState>(initial);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+  const geo = useGeoLocation();
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setState((s) => ({ ...s, [k]: v }));
+
+  const onGpsFill = () => {
+    geo.grab(async (r) => {
+      set('centroidLat', r.lat.toFixed(6));
+      set('centroidLon', r.lon.toFixed(6));
+      setGeocoding(true);
+      try {
+        const addr = await reverseGeocode(r.lat, r.lon);
+        if (addr) {
+          if (addr.settlement) set('settlement', addr.settlement);
+          if (addr.municipality) set('municipality', addr.municipality);
+          if (addr.region && BG_REGIONS.includes(addr.region)) set('region', addr.region);
+        }
+      } finally {
+        setGeocoding(false);
+      }
+    });
+  };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -129,63 +152,129 @@ export function SiteForm(props: Props) {
   };
 
   const l = labels.site;
+
   return (
-    <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 480 }}>
+    <form onSubmit={onSubmit} className="form-page">
       <h2>{props.mode === 'create' ? l.createTitle : l.editTitle}</h2>
 
-      {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
+      {error && <div role="alert" className="alert alert--error">{error}</div>}
 
       {props.mode === 'edit'
-        ? <h3 style={{ marginTop: 0 }}>{state.name}</h3>
+        ? <h3 style={{ marginTop: 0, marginBottom: 'var(--space-4)' }}>{state.name}</h3>
         : (
-          <label>{l.fields.name}
+          <label className="field">
+            <span className="field__label field__label--required">{l.fields.name}</span>
             <input value={state.name} onChange={(e) => set('name', e.target.value)} required />
           </label>
         )
       }
-      <label>{l.fields.settlement}
+
+      {/* GPS prefill */}
+      <div className="field">
+        <span className="field__label">{l.fields.centroidLat} / {l.fields.centroidLon}</span>
+        <button
+          type="button"
+          className="gps-btn"
+          onClick={onGpsFill}
+          disabled={geo.loading || geocoding}
+        >
+          {geo.loading ? '⟳ GPS…' : geocoding ? '⟳ Геокодиране…' : '📍 Взими текущото местоположение'}
+        </button>
+        {geo.error && <div className="alert alert--error">{geo.error}</div>}
+      </div>
+
+      <div className="form-row-2">
+        <label className="field">
+          <span className="field__label field__label--required">{l.fields.centroidLat}</span>
+          <input
+            className="input--mono"
+            type="number"
+            step="any"
+            value={state.centroidLat}
+            onChange={(e) => set('centroidLat', e.target.value)}
+            required
+          />
+        </label>
+        <label className="field">
+          <span className="field__label field__label--required">{l.fields.centroidLon}</span>
+          <input
+            className="input--mono"
+            type="number"
+            step="any"
+            value={state.centroidLon}
+            onChange={(e) => set('centroidLon', e.target.value)}
+            required
+          />
+        </label>
+      </div>
+
+      <label className="field">
+        <span className="field__label field__label--required">{l.fields.settlement}</span>
         <input value={state.settlement} onChange={(e) => set('settlement', e.target.value)} required />
       </label>
-      <label>{l.fields.ekatte}
-        <input value={state.ekatte} onChange={(e) => set('ekatte', e.target.value)} />
-      </label>
-      <label>{l.fields.cadastralParcelId}
-        <input value={state.cadastralParcelId} onChange={(e) => set('cadastralParcelId', e.target.value)} />
-      </label>
-      <label>{l.fields.municipality}
+
+      <label className="field">
+        <span className="field__label field__label--required">{l.fields.municipality}</span>
         <input value={state.municipality} onChange={(e) => set('municipality', e.target.value)} required />
       </label>
-      <label>{l.fields.region}
-        <input value={state.region} onChange={(e) => set('region', e.target.value)} required />
-      </label>
-      <label>{l.fields.centroidLat}
-        <input type="number" step="any" value={state.centroidLat}
-               onChange={(e) => set('centroidLat', e.target.value)} required />
-      </label>
-      <label>{l.fields.centroidLon}
-        <input type="number" step="any" value={state.centroidLon}
-               onChange={(e) => set('centroidLon', e.target.value)} required />
-      </label>
-      <label>{l.fields.accessNotes}
-        <textarea value={state.accessNotes} onChange={(e) => set('accessNotes', e.target.value)} />
-      </label>
-      <label>{l.fields.landUse}
-        <input value={state.landUse} onChange={(e) => set('landUse', e.target.value)} />
-      </label>
-      <label>{l.fields.tags}
-        <input value={state.tags} onChange={(e) => set('tags', e.target.value)} />
-      </label>
-      <label>{l.fields.status}
-        <select value={state.status} onChange={(e) => set('status', e.target.value as Site['status'])}>
-          {(Object.keys(l.statusOptions) as (keyof typeof l.statusOptions)[]).map((k) => (
-            <option key={k} value={k}>{l.statusOptions[k]}</option>
-          ))}
+
+      <div className="field">
+        <label htmlFor="site-region" className="field__label field__label--required">{l.fields.region}</label>
+        <select
+          id="site-region"
+          value={state.region}
+          onChange={(e) => set('region', e.target.value)}
+          required
+        >
+          <option value="">— изберете —</option>
+          {BG_REGIONS.map((r) => <option key={r} value={r}>{r}</option>)}
         </select>
+      </div>
+
+      <div className="field">
+        <span className="field__label">{l.fields.status}</span>
+        <div className="tap-group">
+          {(Object.keys(l.statusOptions) as (keyof typeof l.statusOptions)[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`tap-btn${state.status === k ? ' tap-btn--active' : ''}`}
+              onClick={() => set('status', k)}
+            >
+              {l.statusOptions[k]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="field">
+        <span className="field__label">{l.fields.ekatte}</span>
+        <input value={state.ekatte} onChange={(e) => set('ekatte', e.target.value)} />
       </label>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="submit" disabled={saving}>{labels.common.save}</button>
-        <button type="button" onClick={props.onCancel} disabled={saving}>{labels.common.cancel}</button>
+      <label className="field">
+        <span className="field__label">{l.fields.cadastralParcelId}</span>
+        <input value={state.cadastralParcelId} onChange={(e) => set('cadastralParcelId', e.target.value)} />
+      </label>
+
+      <label className="field">
+        <span className="field__label">{l.fields.accessNotes}</span>
+        <textarea value={state.accessNotes} onChange={(e) => set('accessNotes', e.target.value)} />
+      </label>
+
+      <label className="field">
+        <span className="field__label">{l.fields.landUse}</span>
+        <input value={state.landUse} onChange={(e) => set('landUse', e.target.value)} />
+      </label>
+
+      <label className="field">
+        <span className="field__label">{l.fields.tags}</span>
+        <input value={state.tags} onChange={(e) => set('tags', e.target.value)} />
+      </label>
+
+      <div className="btn-row">
+        <button type="submit" className="btn-primary" disabled={saving}>{labels.common.save}</button>
+        <button type="button" className="btn-secondary" onClick={props.onCancel} disabled={saving}>{labels.common.cancel}</button>
       </div>
     </form>
   );

@@ -75,72 +75,90 @@ export function LineDetail({ lineId, onBack }: Props) {
     await removeAnomaly(lineId, anomalyId);
   }
 
-  if (!row) return <p>{labels.common.loading}</p>;
+  if (!row) return <p className="loading-text">{labels.common.loading}</p>;
   const l = row.json;
   const ll = labels.line;
   const pl = labels.profile;
   const al = labels.anomaly;
 
   return (
-    <section style={{ padding: 16, maxWidth: 720 }}>
-      <button onClick={onBack}>{labels.common.back}</button>
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+    <section>
+      <button className="btn-ghost" onClick={onBack}>{labels.common.back}</button>
+
+      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-3) 0 var(--space-4)' }}>
         <h1 style={{ margin: 0 }}>{l.label}</h1>
         <code>{ll.title}</code>
       </header>
 
-      <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px 16px' }}>
+      <dl className="detail-grid">
         <dt>{ll.fields.pointCount}</dt><dd>{l.pointCount}</dd>
-        <dt>{ll.fields.pointSpacingM}</dt><dd>{l.pointSpacingM}</dd>
-        <dt>{ll.fields.electrodeSpacingM}</dt><dd>{l.electrodeSpacingM}</dd>
+        <dt>{ll.fields.pointSpacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.pointSpacingM} m</dd>
+        <dt>{ll.fields.electrodeSpacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.electrodeSpacingM} m</dd>
         <dt>{ll.fields.mode}</dt><dd>{ll.modeOptions[l.mode]}</dd>
         <dt>{ll.fields.dipoleOrientation}</dt><dd>{ll.dipoleOptions[l.dipoleOrientation]}</dd>
-        {l.lengthM != null && (<><dt>{ll.lengthM}</dt><dd>{l.lengthM.toFixed(2)} m</dd></>)}
+        {l.lengthM != null && (<><dt>{ll.lengthM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.lengthM.toFixed(2)} m</dd></>)}
       </dl>
 
-      <h2>{ll.verticesFixed}</h2>
-      <ul>
+      <div className="section-heading">
+        <h2 style={{ margin: 0 }}>{ll.verticesFixed}</h2>
+      </div>
+      <ul style={{ padding: 0, listStyle: 'none' }}>
         {l.vertices.map((v, i) => (
-          <li key={i}>
+          <li key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '4px 0' }}>
             точка {v.atPointIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
           </li>
         ))}
       </ul>
 
-      <h2>{pl.heading}</h2>
+      <div className="section-heading">
+        <h2 style={{ margin: 0 }}>{pl.heading}</h2>
+      </div>
+
       {l.points.length === 0 ? (
-        <p>{pl.noData}</p>
+        <p className="loading-text">{pl.noData}</p>
       ) : (
         <>
-          <ProfileCanvas points={l.points} channelSet={l.channelSetSnapshot} anomalies={anomalies} />
+          <div className="canvas-wrapper">
+            <ProfileCanvas points={l.points} channelSet={l.channelSetSnapshot} anomalies={anomalies} />
+          </div>
+
           {bmpUrls.length > 0 && (
             <>
               <h3>{pl.deviceScreens}</h3>
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 'var(--space-3)' }}>
                 {bmpUrls.map((url, i) => (
                   <img
                     key={i}
                     src={url}
                     alt={`${pl.deviceScreens} ${i + 1}`}
-                    style={{ maxHeight: 240, objectFit: 'contain' }}
+                    style={{ maxHeight: 240, objectFit: 'contain', borderRadius: 'var(--r-sm)' }}
                   />
                 ))}
               </div>
             </>
           )}
 
-          <h2>{al.heading}</h2>
+          <div className="section-heading">
+            <h2 style={{ margin: 0 }}>{al.heading}</h2>
+          </div>
+
           {anomalies.length === 0 ? (
-            <p>{al.noAnomalies}</p>
+            <p className="loading-text">{al.noAnomalies}</p>
           ) : (
-            <ul>
+            <ul style={{ padding: 0, listStyle: 'none' }}>
               {anomalies.map((a) => (
-                <li key={a.id}>
-                  {a.type} · т.{a.fromPoint}–{a.toPoint} · к.{a.fromChannel}–{a.toChannel} · {a.confidence}★
-                  {a.note && ` — ${a.note}`}
+                <li key={a.id} className="anomaly-item">
+                  <div>
+                    <div className="anomaly-item__type">{a.type}</div>
+                    <div className="anomaly-item__meta">
+                      т.{a.fromPoint}–{a.toPoint} · к.{a.fromChannel}–{a.toChannel} · {a.confidence}★
+                      {a.note && ` — ${a.note}`}
+                    </div>
+                  </div>
                   <button
+                    className="btn-danger"
                     onClick={() => handleRemoveAnomaly(a.id)}
-                    style={{ marginLeft: 8 }}
+                    style={{ minHeight: 36, padding: '0 12px', fontSize: '0.8rem' }}
                   >
                     {al.deleteButton}
                   </button>
@@ -148,6 +166,7 @@ export function LineDetail({ lineId, onBack }: Props) {
               ))}
             </ul>
           )}
+
           <AnomalyForm
             pointCount={l.pointCount}
             channelCount={l.channelSetSnapshot.channels.length}

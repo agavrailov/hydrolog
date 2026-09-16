@@ -17,7 +17,7 @@ export function SiteDetail(props: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!site) return <p>{labels.common.loading}</p>;
+  if (!site) return <p className="loading-text">{labels.common.loading}</p>;
 
   const onDelete = async () => {
     if (!window.confirm(labels.site.deleteConfirm)) return;
@@ -35,53 +35,60 @@ export function SiteDetail(props: Props) {
 
   const s = site.json;
   const l = labels.site;
+
   return (
-    <section style={{ padding: 16, maxWidth: 720 }}>
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-        <h1 style={{ margin: 0 }}>{s.name}</h1>
+    <section>
+      <header style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 4 }}>
+          <h1 style={{ margin: 0 }}>{s.name}</h1>
+          <span className={`chip chip--${s.status}`}>{l.statusOptions[s.status]}</span>
+        </div>
         <code>{s.code}</code>
       </header>
 
-      {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
+      {error && <div role="alert" className="alert alert--error">{error}</div>}
 
-      <dl style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', gap: '4px 16px' }}>
+      <dl className="detail-grid">
         <dt>{l.fields.settlement}</dt><dd>{s.settlement}</dd>
         <dt>{l.fields.municipality}</dt><dd>{s.municipality}</dd>
         <dt>{l.fields.region}</dt><dd>{s.region}</dd>
-        <dt>{l.fields.centroidLat}</dt><dd>{s.centroid.lat}</dd>
-        <dt>{l.fields.centroidLon}</dt><dd>{s.centroid.lon}</dd>
+        <dt>{l.fields.centroidLat}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.centroid.lat}</dd>
+        <dt>{l.fields.centroidLon}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.centroid.lon}</dd>
         {s.ekatte && (<><dt>{l.fields.ekatte}</dt><dd>{s.ekatte}</dd></>)}
         {s.cadastralParcelId && (<><dt>{l.fields.cadastralParcelId}</dt><dd>{s.cadastralParcelId}</dd></>)}
         {s.accessNotes && (<><dt>{l.fields.accessNotes}</dt><dd>{s.accessNotes}</dd></>)}
         {s.landUse && (<><dt>{l.fields.landUse}</dt><dd>{s.landUse}</dd></>)}
         {s.tags?.length ? (<><dt>{l.fields.tags}</dt><dd>{s.tags.join(', ')}</dd></>) : null}
-        <dt>{l.fields.status}</dt><dd>{l.statusOptions[s.status]}</dd>
       </dl>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button onClick={props.onEdit} disabled={busy}>{labels.common.edit}</button>
-        <button onClick={onDelete} disabled={busy}>{labels.common.delete}</button>
-        <button onClick={props.onNewSurvey} disabled={busy}>{l.newSurvey}</button>
+      <div className="btn-row">
+        <button className="btn-secondary" onClick={props.onEdit} disabled={busy}>{labels.common.edit}</button>
+        <button className="btn-danger" onClick={onDelete} disabled={busy}>{labels.common.delete}</button>
+        <button className="btn-primary" onClick={props.onNewSurvey} disabled={busy}>{l.newSurvey}</button>
       </div>
 
-      <h2>{l.surveysHeading}</h2>
+      <div className="section-heading">
+        <h2 style={{ margin: 0 }}>{l.surveysHeading}</h2>
+      </div>
+
       {surveys === undefined ? (
-        <p>{labels.common.loading}</p>
+        <p className="loading-text">{labels.common.loading}</p>
       ) : surveys.length === 0 ? (
-        <p>{l.noSurveys}</p>
+        <p className="loading-text">{l.noSurveys}</p>
       ) : (
-        <ul>
+        <>
           {surveys.map((sv) => (
-            <li key={sv.id}>
-              <button
-                style={{ background: 'none', border: 'none', padding: 0, color: 'steelblue', cursor: 'pointer', textDecoration: 'underline' }}
-                onClick={() => props.onOpenSurvey(sv.id)}
-              >
-                {sv.folderName} · {sv.json.operator}
-              </button>
-            </li>
+            <button
+              key={sv.id}
+              className="card card--interactive"
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--space-4)', minHeight: 'unset' }}
+              onClick={() => props.onOpenSurvey(sv.id)}
+            >
+              <div className="survey-card__date">{sv.folderName}</div>
+              <div className="survey-card__meta">{sv.json.operator} · {sv.json.deviceModel}</div>
+            </button>
           ))}
-        </ul>
+        </>
       )}
     </section>
   );

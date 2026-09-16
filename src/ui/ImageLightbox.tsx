@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { LineMap } from './LineMap';
 import type { Vertex } from '../domain/types';
 
+interface LatLon { lat: number; lon: number }
+
 export type LightboxItem =
   | { kind: 'image'; url: string; alt: string }
-  | { kind: 'map'; vertices: Vertex[] };
+  | { kind: 'map'; vertices: Vertex[]; activeStart?: LatLon; activeEnd?: LatLon };
 
 interface Props {
   items: LightboxItem[];
@@ -63,7 +65,7 @@ export function ImageLightbox({ items, startIndex = 0, onClose }: Props) {
       onTouchEnd={handleTouchEnd}
       onClick={isMap ? undefined : onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed', inset: 0, zIndex: 9999,
         background: 'rgba(0,0,0,0.94)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: isMap ? 'default' : 'zoom-out',
@@ -129,7 +131,12 @@ export function ImageLightbox({ items, startIndex = 0, onClose }: Props) {
           onClick={(e) => e.stopPropagation()}
           style={{ width: '100dvw', height: '100dvh' }}
         >
-          <LineMap vertices={item.vertices} heightPx={window.innerHeight} />
+          <LineMap
+            vertices={item.vertices}
+            activeStart={item.activeStart}
+            activeEnd={item.activeEnd}
+            heightPx={window.innerHeight}
+          />
         </div>
       )}
     </div>

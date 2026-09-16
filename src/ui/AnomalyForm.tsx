@@ -46,7 +46,7 @@ function NumStepper({
         disabled={value <= min}>−</button>
       <input
         aria-label={ariaLabel}
-        type="number" min={min} max={max} step={step} value={value}
+        type="number" min={min} max={max} step="any" value={value}
         onChange={(e) => onChange(Number(e.target.value))}
       />
       <button type="button" className="stepper__btn"
@@ -70,6 +70,19 @@ export function AnomalyForm({ pointCount, channelSet, onSubmit, onSelectionChang
   const [type, setType] = useState<AnomalyType>('fracture-signature');
   const [confidence, setConfidence] = useState<1 | 2 | 3 | 4 | 5>(3);
   const [note, setNote] = useState('');
+  const [expanded, setExpanded] = useState(false);
+
+  // Sync location when user taps a new point on the image
+  useEffect(() => {
+    if (initialSelection?.fromPoint != null) setFromPoint(initialSelection.fromPoint);
+    if (initialSelection?.toPoint != null) setToPoint(initialSelection.toPoint);
+    if (initialSelection?.fromDepthM != null) {
+      setFromDepthM(Math.round(initialSelection.fromDepthM));
+      if (initialSelection.toDepthM == null)
+        setToDepthM(Math.min(Math.round(maxDepthM), Math.round(initialSelection.fromDepthM) + 2));
+    }
+    if (initialSelection?.toDepthM != null) setToDepthM(Math.round(initialSelection.toDepthM));
+  }, [initialSelection]);
 
   useEffect(() => {
     onSelectionChange?.({ fromPoint, toPoint, fromDepthM, toDepthM });
@@ -77,6 +90,7 @@ export function AnomalyForm({ pointCount, channelSet, onSubmit, onSelectionChang
 
   const al = labels.anomaly;
   const fl = al.fields;
+  const hasSelection = initialSelection != null;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -92,67 +106,118 @@ export function AnomalyForm({ pointCount, channelSet, onSubmit, onSelectionChang
       note: note.trim() || undefined,
     });
     setNote('');
+    setExpanded(false);
   }
 
+  const pillStyle: React.CSSProperties = {
+    background: 'var(--bg-input)',
+    border: '1px solid var(--border-input)',
+    borderRadius: 'var(--r-sm)',
+    padding: '0 10px',
+    height: 36,
+    fontFamily: 'var(--font-mono)',
+    fontSize: '0.75rem',
+    cursor: hasSelection ? 'pointer' : 'default',
+    color: hasSelection ? 'var(--text-base)' : 'var(--text-muted)',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="card" style={{ marginTop: 'var(--space-4)' }}>
-      <h3 style={{ margin: '0 0 var(--space-4)' }}>{al.formHeading}</h3>
+    <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+      {/* Fine-tune steppers — hidden until user taps the location pill */}
+      {expanded && (
+        <div style={{ marginBottom: 'var(--space-3)', paddingBottom: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div className="form-row-2" style={{ marginBottom: 'var(--space-2)' }}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <span className="field__label">{fl.fromPoint}</span>
+              <NumStepper ariaLabel={fl.fromPoint} value={fromPoint} onChange={setFromPoint} min={1} max={pointCount} />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <span className="field__label">{fl.toPoint}</span>
+              <NumStepper ariaLabel={fl.toPoint} value={toPoint} onChange={setToPoint} min={1} max={pointCount} />
+            </div>
+          </div>
+          <div className="form-row-2" style={{ marginBottom: 'var(--space-2)' }}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <span className="field__label">{fl.fromDepth}</span>
+              <NumStepper ariaLabel={fl.fromDepth} value={fromDepthM} onChange={setFromDepthM} min={0} max={Math.round(maxDepthM)} step={1} />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <span className="field__label">{fl.toDepth}</span>
+              <NumStepper ariaLabel={fl.toDepth} value={toDepthM} onChange={setToDepthM} min={0} max={Math.round(maxDepthM)} step={1} />
+            </div>
+          </div>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span className="field__label">{fl.note}</span>
+            <input type="text" value={note} onChange={(e) => setNote(e.target.value)} />
+          </label>
+        </div>
+      )}
 
-      <div className="form-row-2">
-        <div className="field" style={{ marginBottom: 0 }}>
-          <span className="field__label">{fl.fromPoint}</span>
-          <NumStepper ariaLabel={fl.fromPoint} value={fromPoint} onChange={setFromPoint} min={1} max={pointCount} />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <span className="field__label">{fl.toPoint}</span>
-          <NumStepper ariaLabel={fl.toPoint} value={toPoint} onChange={setToPoint} min={1} max={pointCount} />
-        </div>
-      </div>
+      {/* Compact row: location · type · confidence · submit */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+        {/* Location pill — tappable to reveal steppers */}
+        <button type="button" style={pillStyle} onClick={() => hasSelection && setExpanded(x => !x)}>
+          {hasSelection
+            ? `т.${fromPoint}–${toPoint} · ${Math.round(fromDepthM)}–${Math.round(toDepthM)}м ${expanded ? '▲' : '✎'}`
+            : '↑ тапни снимката'}
+        </button>
 
-      <div className="form-row-2" style={{ marginTop: 'var(--space-3)' }}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <span className="field__label">{fl.fromDepth}</span>
-          <NumStepper ariaLabel={fl.fromDepth} value={fromDepthM} onChange={setFromDepthM} min={stepM} max={maxDepthM} step={stepM} />
-        </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <span className="field__label">{fl.toDepth}</span>
-          <NumStepper ariaLabel={fl.toDepth} value={toDepthM} onChange={setToDepthM} min={stepM} max={maxDepthM} step={stepM} />
-        </div>
-      </div>
-
-      <div className="field" style={{ marginTop: 'var(--space-3)' }}>
-        <span className="field__label">{fl.type}</span>
-        <div className="tap-group">
+        {/* Type */}
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value as AnomalyType)}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            height: 36,
+            background: 'var(--bg-input)',
+            border: '1px solid var(--border-input)',
+            borderRadius: 'var(--r-sm)',
+            color: 'var(--text-base)',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.8rem',
+            padding: '0 6px',
+          }}
+        >
           {ANOMALY_TYPES.map((t) => (
-            <button key={t} type="button"
-              className={`tap-btn${type === t ? ' tap-btn--active' : ''}`}
-              onClick={() => setType(t)}>
-              {al.typeOptions[t]}
-            </button>
+            <option key={t} value={t}>{al.typeOptions[t]}</option>
           ))}
-        </div>
-      </div>
+        </select>
 
-      <div className="field">
-        <span className="field__label">{fl.confidence}</span>
-        <div className="tap-group">
+        {/* Confidence stars */}
+        <div style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
           {([1, 2, 3, 4, 5] as const).map((c) => (
-            <button key={c} type="button"
-              className={`tap-btn${confidence === c ? ' tap-btn--active' : ''}`}
+            <button
+              key={c}
+              type="button"
               onClick={() => setConfidence(c)}
-              style={{ minWidth: 44 }}>
-              {'★'.repeat(c)}
-            </button>
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '1.1rem',
+                padding: '0 1px',
+                lineHeight: 1,
+                color: c <= confidence ? '#f59e0b' : 'var(--border-input)',
+              }}
+            >★</button>
           ))}
         </div>
+
+        {/* Submit */}
+        <button
+          type="submit"
+          className="btn-primary"
+          style={{ height: 36, padding: '0 14px', fontSize: '0.85rem', flexShrink: 0, minHeight: 'unset' }}
+          disabled={!hasSelection}
+        >
+          +
+        </button>
       </div>
-
-      <label className="field">
-        <span className="field__label">{fl.note}</span>
-        <input type="text" value={note} onChange={(e) => setNote(e.target.value)} />
-      </label>
-
-      <button type="submit" className="btn-primary btn-full">{al.addButton}</button>
     </form>
   );
 }

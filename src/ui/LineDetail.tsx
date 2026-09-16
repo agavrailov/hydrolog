@@ -59,13 +59,18 @@ export function LineDetail({ lineId, onDeleted }: Props) {
     if (!row) return [];
     const items: LightboxItem[] = [];
     if (row.json.vertices.length > 0) {
-      items.push({ kind: 'map', vertices: row.json.vertices });
+      items.push({
+        kind: 'map',
+        vertices: row.json.vertices,
+        activeStart: activeEnds?.start,
+        activeEnd: activeEnds?.end,
+      });
     }
     for (const item of deviceScreenItems) {
       items.push({ kind: 'image', url: item.url, alt: item.name });
     }
     return items;
-  }, [row, deviceScreenItems]);
+  }, [row, activeEnds, deviceScreenItems]);
 
   async function handleAddAnomaly(input: AnomalyInput) {
     await addAnomaly(lineId, input);
@@ -105,7 +110,8 @@ export function LineDetail({ lineId, onDeleted }: Props) {
   const hasDeviceData = l.points.length > 0;
 
   return (
-    <section>
+    <>
+    <section style={hasDeviceData ? { paddingBottom: 100 } : undefined}>
       {lightboxIndex !== null && galleryItems.length > 0 && (
         <ImageLightbox
           items={galleryItems}
@@ -202,14 +208,13 @@ export function LineDetail({ lineId, onDeleted }: Props) {
         </>
       )}
 
-      {/* Anomaly workflow — shown whenever there is device data */}
+      {/* Anomaly list */}
       {hasDeviceData ? (
         <>
           <div className="section-heading">
             <h2 style={{ margin: 0 }}>{al.heading}</h2>
           </div>
-
-          {anomalies.length > 0 && (
+          {anomalies.length > 0 ? (
             <ul style={{ padding: 0, listStyle: 'none', marginBottom: 'var(--space-3)' }}>
               {anomalies.map((a) => (
                 <li key={a.id} className="anomaly-item">
@@ -232,15 +237,9 @@ export function LineDetail({ lineId, onDeleted }: Props) {
                 </li>
               ))}
             </ul>
+          ) : (
+            <p className="loading-text" style={{ fontSize: '0.85rem' }}>{al.noAnomalies}</p>
           )}
-
-          <AnomalyForm
-            pointCount={l.pointCount}
-            channelSet={l.channelSetSnapshot}
-            onSubmit={handleAddAnomaly}
-            onSelectionChange={setSelection}
-            initialSelection={initialSel}
-          />
         </>
       ) : (
         <>
@@ -251,5 +250,28 @@ export function LineDetail({ lineId, onDeleted }: Props) {
         </>
       )}
     </section>
+
+    {/* Sticky anomaly bar — always visible when device data is present */}
+    {hasDeviceData && (
+      <div style={{
+        position: 'fixed',
+        bottom: 0, left: 0, right: 0,
+        zIndex: 20,
+        background: 'var(--bg-elevated)',
+        borderTop: '1px solid var(--border-subtle)',
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.25)',
+      }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: 'var(--space-2) var(--space-4) calc(var(--space-2) + env(safe-area-inset-bottom, 0px))' }}>
+          <AnomalyForm
+            pointCount={l.pointCount}
+            channelSet={l.channelSetSnapshot}
+            onSubmit={handleAddAnomaly}
+            onSelectionChange={setSelection}
+            initialSelection={initialSel}
+          />
+        </div>
+      </div>
+    )}
+    </>
   );
 }

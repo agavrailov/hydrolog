@@ -60,7 +60,7 @@ export function LineMap({ vertices, activeStart, activeEnd, heightPx = 260, onEx
   if (vertices.length === 0) return null;
 
   return (
-    <div style={{ position: 'relative', marginBottom: 'var(--space-3)' }}>
+    <div style={{ position: 'relative', marginBottom: 'var(--space-3)', isolation: 'isolate' }}>
       <div
         ref={containerRef}
         style={{

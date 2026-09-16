@@ -12,6 +12,7 @@ interface Props {
   pointCount: number;
   maxDepthM: number;
   onTap?: (sel: Partial<AnomalySelection>) => void;
+  onExpand?: (localIndex: number) => void;
 }
 
 interface Rect { left: number; top: number; width: number; height: number }
@@ -36,9 +37,28 @@ function toRect(
 
 type CalStep = 'idle' | 'corner1' | 'corner2';
 
+const expandIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 3 21 3 21 9"/>
+    <polyline points="9 21 3 21 3 15"/>
+    <line x1="21" y1="3" x2="14" y2="10"/>
+    <line x1="3" y1="21" x2="10" y2="14"/>
+  </svg>
+);
+
+const expandBtnStyle: React.CSSProperties = {
+  position: 'absolute', top: 6, right: 6,
+  width: 32, height: 32,
+  background: 'rgba(0,0,0,0.55)', border: 'none',
+  borderRadius: 6, cursor: 'pointer', padding: 0,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: '#fff', opacity: 0.85,
+};
+
 export function BmpAnnotationLayer({
   bmpItems, calibration, onCalibrate,
-  anomalies, selection, pointCount, maxDepthM, onTap,
+  anomalies, selection, pointCount, maxDepthM, onTap, onExpand,
 }: Props) {
   const [calStep, setCalStep] = useState<CalStep>('idle');
   const [corner1, setCorner1] = useState<{ x: number; y: number } | null>(null);
@@ -89,11 +109,17 @@ export function BmpAnnotationLayer({
 
   return (
     <div>
-      {/* Secondary images (raw) shown without overlay */}
-      {otherItems.map((item) => (
-        <div key={item.url} style={{ marginBottom: 'var(--space-3)' }}>
+      {/* Secondary images (raw) — tap to view full screen */}
+      {otherItems.map((item, i) => (
+        <div key={item.url} style={{ position: 'relative', marginBottom: 'var(--space-3)', cursor: 'zoom-in' }}
+          onClick={() => onExpand?.(i)}>
           <img src={item.url} alt={item.name}
-            style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)' }} />
+            style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)', pointerEvents: 'none' }} />
+          {onExpand && (
+            <button onClick={(e) => { e.stopPropagation(); onExpand(i); }} title="Виж на цял екран" style={expandBtnStyle}>
+              {expandIcon}
+            </button>
+          )}
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
             {item.name}
           </div>
@@ -118,6 +144,17 @@ export function BmpAnnotationLayer({
             alt={primaryItem.name}
             style={{ display: 'block', width: '100%' }}
           />
+
+          {/* Expand to full screen */}
+          {onExpand && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExpand(bmpItems.length - 1); }}
+              title="Виж на цял екран"
+              style={expandBtnStyle}
+            >
+              {expandIcon}
+            </button>
+          )}
 
           {/* Calibration corner indicator */}
           {calStep === 'corner2' && corner1 && (

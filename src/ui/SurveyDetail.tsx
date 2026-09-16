@@ -3,6 +3,8 @@ import { labels } from './labels';
 import { useSurvey, useLines, useLineMedia } from '../cache/hooks';
 import { finalizeSurvey } from '../domain/survey-service';
 import { useBmpUrls } from './util/useBmpUrls';
+import { ImageLightbox } from './ImageLightbox';
+import type { LightboxItem } from './ImageLightbox';
 import type { LineRow } from '../cache/db';
 
 interface Props {
@@ -103,38 +105,88 @@ export function SurveyDetail({ surveyId, onEdit, onImport, onNewLine, onOpenLine
   );
 }
 
+const expandIcon = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+    fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 3 21 3 21 9"/>
+    <polyline points="9 21 3 21 3 15"/>
+    <line x1="21" y1="3" x2="14" y2="10"/>
+    <line x1="3" y1="21" x2="10" y2="14"/>
+  </svg>
+);
+
 function LineCard({ row, onClick }: { row: LineRow; onClick: () => void }) {
   const media = useLineMedia(row.id);
   const screenPaths = (media ?? [])
     .filter((m) => m.json.kind === 'device-screen')
     .map((m) => m.storagePath);
   const bmpUrls = useBmpUrls(screenPaths);
-  const thumbUrl = bmpUrls[0];
+  const [lightboxStart, setLightboxStart] = useState<number | null>(null);
+
+  // Only originals — all except the last (processed) image, or all if only one
+  const originalUrls = bmpUrls.length > 1 ? bmpUrls.slice(0, -1) : bmpUrls;
+  const lightboxItems: LightboxItem[] = originalUrls.map((url, i) => ({
+    kind: 'image',
+    url,
+    alt: `${row.json.label} – снимка ${i + 1}`,
+  }));
+  const thumbUrl = originalUrls[0];
+
   const l = row.json;
   const statusLabel = labels.line.statusOptions[l.status as keyof typeof labels.line.statusOptions] ?? l.status;
 
   return (
-    <button
-      className={`card card--interactive line-card line-card--${l.status}`}
-      onClick={onClick}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: thumbUrl ? 10 : 6 }}>
-        <span className="line-card__label">{l.label}</span>
-        <span className={`chip chip--${l.status}`}>{statusLabel}</span>
-      </div>
-      {thumbUrl && (
-        <img
-          src={thumbUrl}
-          alt={l.label}
-          style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)', marginBottom: 8, objectFit: 'cover' }}
+    <>
+      {lightboxStart !== null && lightboxItems.length > 0 && (
+        <ImageLightbox
+          items={lightboxItems}
+          startIndex={lightboxStart}
+          onClose={() => setLightboxStart(null)}
         />
       )}
-      <div className="line-card__meta">
-        <span>{l.pointCount} {labels.line.points}</span>
-        <span className="line-card__dot">·</span>
-        <span>{l.spacingM} m</span>
+      <div
+        className={`card card--interactive line-card line-card--${l.status}`}
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onClick(); }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: thumbUrl ? 10 : 6 }}>
+          <span className="line-card__label">{l.label}</span>
+          <span className={`chip chip--${l.status}`}>{statusLabel}</span>
+        </div>
+        {thumbUrl && (
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <img
+              src={thumbUrl}
+              alt={l.label}
+              style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)', objectFit: 'cover' }}
+            />
+            {lightboxItems.length > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxStart(0); }}
+                title="Виж на цял екран"
+                style={{
+                  position: 'absolute', top: 6, right: 6,
+                  width: 32, height: 32,
+                  background: 'rgba(0,0,0,0.55)', border: 'none',
+                  borderRadius: 6, cursor: 'pointer', padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#fff', opacity: 0.85,
+                }}
+              >
+                {expandIcon}
+              </button>
+            )}
+          </div>
+        )}
+        <div className="line-card__meta">
+          <span>{l.pointCount} {labels.line.points}</span>
+          <span className="line-card__dot">·</span>
+          <span>{l.spacingM} m</span>
+        </div>
       </div>
-    </button>
+    </>
   );
 }
 

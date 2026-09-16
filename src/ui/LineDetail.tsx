@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { labels } from './labels';
 import { useLine, useLineMedia, useInterpretation } from '../cache/hooks';
 import { AnomalyForm } from './AnomalyForm';
@@ -10,6 +10,10 @@ import { updateLine, softDeleteLine } from '../domain/line-service';
 import type { Line } from '../domain/types';
 import { useBmpUrls } from './util/useBmpUrls';
 import { LineMap } from './LineMap';
+import { ELECTRODE_LAYOUT, activePointFractions } from '../domain/device-config';
+import { interpolatePointsAtFractions } from '../domain/enu';
+import { ImageLightbox } from './ImageLightbox';
+import type { LightboxItem } from './ImageLightbox';
 
 interface Props {
   lineId: string;
@@ -27,6 +31,17 @@ export function LineDetail({ lineId, onDeleted }: Props) {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [selection, setSelection] = useState<AnomalySelection | null>(null);
   const [initialSel, setInitialSel] = useState<Partial<AnomalySelection> | undefined>(undefined);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const activeEnds = useMemo(() => {
+    if (!row) return undefined;
+    const l = row.json;
+    const layout = ELECTRODE_LAYOUT[l.channelSetSnapshot.deviceModel];
+    if (!layout || l.vertices.length < 2) return undefined;
+    const fractions = activePointFractions(layout);
+    const pts = interpolatePointsAtFractions(l.vertices, [fractions[0], fractions[fractions.length - 1]]);
+    return { start: pts[0], end: pts[1] };
+  }, [row]);
 
   const deviceScreenMedia = (media ?? []).filter((m) => m.json.kind === 'device-screen');
   const deviceScreenPaths = deviceScreenMedia.map((m) => m.storagePath);
@@ -36,6 +51,21 @@ export function LineDetail({ lineId, onDeleted }: Props) {
     name: deviceScreenMedia[i]?.storagePath.split('/').pop() ?? `снимка ${i + 1}`,
   }));
   const anomalies = interpretation?.json.anomalies ?? [];
+
+  const hasMap = (row?.json.vertices.length ?? 0) > 0;
+  const mapOffset = hasMap ? 1 : 0;
+
+  const galleryItems = useMemo<LightboxItem[]>(() => {
+    if (!row) return [];
+    const items: LightboxItem[] = [];
+    if (row.json.vertices.length > 0) {
+      items.push({ kind: 'map', vertices: row.json.vertices });
+    }
+    for (const item of deviceScreenItems) {
+      items.push({ kind: 'image', url: item.url, alt: item.name });
+    }
+    return items;
+  }, [row, deviceScreenItems]);
 
   async function handleAddAnomaly(input: AnomalyInput) {
     await addAnomaly(lineId, input);
@@ -76,6 +106,14 @@ export function LineDetail({ lineId, onDeleted }: Props) {
 
   return (
     <section>
+      {lightboxIndex !== null && galleryItems.length > 0 && (
+        <ImageLightbox
+          items={galleryItems}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
       <header style={{ margin: 'var(--space-3) 0 var(--space-3)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
           <h1 style={{ margin: 0 }}>{l.label}</h1>
@@ -128,7 +166,12 @@ export function LineDetail({ lineId, onDeleted }: Props) {
           <div className="section-heading">
             <h2 style={{ margin: 0 }}>{ll.verticesFixed}</h2>
           </div>
-          <LineMap vertices={l.vertices} />
+          <LineMap
+            vertices={l.vertices}
+            activeStart={activeEnds?.start}
+            activeEnd={activeEnds?.end}
+            onExpand={() => setLightboxIndex(0)}
+          />
           <ul style={{ padding: 0, listStyle: 'none' }}>
             {l.vertices.map((v, i) => (
               <li key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '4px 0' }}>
@@ -154,6 +197,7 @@ export function LineDetail({ lineId, onDeleted }: Props) {
             pointCount={l.pointCount}
             maxDepthM={maxDepthM || 150}
             onTap={(partial) => setInitialSel(partial)}
+            onExpand={(localIndex) => setLightboxIndex(mapOffset + localIndex)}
           />
         </>
       )}

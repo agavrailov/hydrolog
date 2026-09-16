@@ -2,13 +2,17 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import type { Vertex } from '../domain/types';
 
+interface LatLon { lat: number; lon: number; }
+
 interface Props {
   vertices: Vertex[];
+  activeStart?: LatLon;
+  activeEnd?: LatLon;
   heightPx?: number;
   onExpand?: () => void;
 }
 
-export function LineMap({ vertices, heightPx = 260, onExpand }: Props) {
+export function LineMap({ vertices, activeStart, activeEnd, heightPx = 260, onExpand }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,12 +32,17 @@ export function LineMap({ vertices, heightPx = 260, onExpand }: Props) {
       L.polyline(latlngs, { color: '#3b82f6', weight: 3, opacity: 0.85 }).addTo(map);
     }
 
-    L.circleMarker(latlngs[0], {
+    const startLL: L.LatLngTuple = activeStart ? [activeStart.lat, activeStart.lon] : latlngs[0];
+    const endLL: L.LatLngTuple | null = activeEnd
+      ? [activeEnd.lat, activeEnd.lon]
+      : latlngs.length >= 2 ? latlngs[latlngs.length - 1] : null;
+
+    L.circleMarker(startLL, {
       radius: 6, fillColor: '#22c55e', color: '#fff', weight: 1.5, fillOpacity: 1,
     }).addTo(map);
 
-    if (latlngs.length >= 2) {
-      L.circleMarker(latlngs[latlngs.length - 1], {
+    if (endLL) {
+      L.circleMarker(endLL, {
         radius: 6, fillColor: '#ef4444', color: '#fff', weight: 1.5, fillOpacity: 1,
       }).addTo(map);
     }

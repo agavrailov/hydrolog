@@ -15,7 +15,7 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client"]
   },
   "include": ["src", "integration", "vite.config.ts", "vitest.config.ts"]
 }

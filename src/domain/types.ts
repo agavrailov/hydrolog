@@ -162,6 +162,7 @@ export interface LineIntersection {
 
 // §4.11
 export interface Anomaly {
+  id: string;
   lineId: string;
   fromPoint: number;
   toPoint: number;

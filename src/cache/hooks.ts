@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { getDb, SiteRow, SurveyRow, LineRow, MediaRow } from './db';
+import { getDb, SiteRow, SurveyRow, LineRow, MediaRow, InterpretationRow } from './db';
 
 export interface SiteFilter {
   query?: string;
@@ -76,5 +76,12 @@ export function useLineMedia(lineId: string | undefined): MediaRow[] | undefined
   return useLiveQuery(async () => {
     if (!lineId) return [];
     return getDb().media.where('linkedId').equals(lineId).toArray();
+  }, [lineId]);
+}
+
+export function useInterpretation(lineId: string | undefined): InterpretationRow | undefined {
+  return useLiveQuery(async () => {
+    if (!lineId) return undefined;
+    return getDb().interpretations.where('lineId').equals(lineId).first();
   }, [lineId]);
 }

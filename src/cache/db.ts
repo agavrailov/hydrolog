@@ -1,6 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import type {
-  Site, Survey, Line, MediaAsset, DrillOutcome,
+  Site, Survey, Line, MediaAsset, DrillOutcome, Interpretation,
 } from '../domain/types';
 
 // Cache rows carry a `folderName` for direct navigation back to the folder,
@@ -43,6 +43,12 @@ export interface OutcomeRow {
   json: DrillOutcome;
 }
 
+export interface InterpretationRow {
+  id: string;      // interpretation ULID
+  lineId: string;  // one-to-one per line
+  json: Interpretation;
+}
+
 export interface MetaRow {
   key: string;
   value: unknown;
@@ -54,6 +60,7 @@ export class HydroLogDb extends Dexie {
   lines!: Table<LineRow, string>;
   media!: Table<MediaRow, string>;
   outcomes!: Table<OutcomeRow, string>;
+  interpretations!: Table<InterpretationRow, string>;
   meta!: Table<MetaRow, string>;
 
   constructor() {
@@ -65,6 +72,9 @@ export class HydroLogDb extends Dexie {
       media: '&id, linkedId, storagePath',
       outcomes: '&id, interpretationId',
       meta: '&key',
+    });
+    this.version(2).stores({
+      interpretations: '&id, lineId',
     });
   }
 }

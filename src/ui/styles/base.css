@@ -284,6 +284,7 @@ input::placeholder, input:not([type])::placeholder { color: var(--text-faint); }
 .chip--not-recommended  { background: rgba(248,113,113,0.15); color: #f87171; }
 .chip--drilled          { background: rgba(245,158,11,0.15);  color: #f59e0b; }
 .chip--archived         { background: rgba(96,125,147,0.15);  color: #607d93; }
+.chip--data-pending     { background: rgba(251,146,60,0.15);   color: #fb923c; }
 .chip--good             { background: rgba(52,211,153,0.15);  color: #34d399; }
 .chip--poor             { background: rgba(251,146,60,0.15);  color: #fb923c; }
 .chip--bad              { background: rgba(248,113,113,0.15); color: #f87171; }
@@ -408,8 +409,10 @@ input::placeholder, input:not([type])::placeholder { color: var(--text-faint); }
   border-left: 3px solid var(--border-subtle);
   padding-left: calc(var(--space-4) - 3px);
 }
-.line-card--complete { border-left-color: #38bdf8; }
-.line-card--draft    { border-left-color: #607d93; }
+.line-card--complete      { border-left-color: #38bdf8; }
+.line-card--draft         { border-left-color: #607d93; }
+.line-card--data-pending  { border-left-color: #fb923c; }
+.line-card--archived      { border-left-color: #374151; opacity: 0.6; }
 
 .line-card__label {
   font-family: var(--font-mono);

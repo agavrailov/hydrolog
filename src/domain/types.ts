@@ -145,7 +145,7 @@ export interface Line extends AuditFields {
   transformLog: TransformLogEntry[];  // required, may be empty; never silent flips
   points: Point[];
   noiseZones: NoiseZone[];
-  status: 'draft' | 'data-pending' | 'complete';
+  status: 'draft' | 'data-pending' | 'complete' | 'archived';
 }
 
 // §4.10

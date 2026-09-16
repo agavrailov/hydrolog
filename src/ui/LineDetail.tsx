@@ -5,6 +5,8 @@ import { ProfileCanvas } from './ProfileCanvas';
 import { AnomalyForm } from './AnomalyForm';
 import { addAnomaly, removeAnomaly } from '../domain/interpretation-service';
 import type { AnomalyInput } from '../domain/interpretation-service';
+import { updateLine } from '../domain/line-service';
+import type { Line } from '../domain/types';
 import { getPath } from '../storage/paths';
 import { readBlob } from '../storage/atomic';
 import { getRoot } from '../storage/fs';
@@ -54,10 +56,13 @@ function useBmpUrls(storagePaths: string[]): string[] {
   return urls;
 }
 
+const LINE_STATUSES: Line['status'][] = ['draft', 'data-pending', 'complete', 'archived'];
+
 export function LineDetail({ lineId }: Props) {
   const row = useLine(lineId);
   const media = useLineMedia(lineId);
   const interpretation = useInterpretation(lineId);
+  const [statusBusy, setStatusBusy] = useState(false);
 
   const deviceScreenPaths = (media ?? [])
     .filter((m) => m.json.kind === 'device-screen')
@@ -74,6 +79,13 @@ export function LineDetail({ lineId }: Props) {
     await removeAnomaly(lineId, anomalyId);
   }
 
+  async function handleSetStatus(status: Line['status']) {
+    if (statusBusy) return;
+    setStatusBusy(true);
+    try { await updateLine(lineId, { status }); }
+    finally { setStatusBusy(false); }
+  }
+
   if (!row) return <p className="loading-text">{labels.common.loading}</p>;
   const l = row.json;
   const ll = labels.line;
@@ -82,9 +94,24 @@ export function LineDetail({ lineId }: Props) {
 
   return (
     <section>
-      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-3) 0 var(--space-4)' }}>
-        <h1 style={{ margin: 0 }}>{l.label}</h1>
-        <code>{ll.title}</code>
+      <header style={{ margin: 'var(--space-3) 0 var(--space-3)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-3)' }}>
+          <h1 style={{ margin: 0 }}>{l.label}</h1>
+          <span className={`chip chip--${l.status}`}>{ll.statusOptions[l.status]}</span>
+        </div>
+        <div className="tap-group">
+          {LINE_STATUSES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`tap-btn${l.status === s ? ' tap-btn--active' : ''}`}
+              onClick={() => handleSetStatus(s)}
+              disabled={statusBusy || l.status === s}
+            >
+              {ll.statusOptions[s]}
+            </button>
+          ))}
+        </div>
       </header>
 
       <dl className="detail-grid">

@@ -137,7 +137,7 @@ export const labels = {
     newLine: 'Нов профил',
     new: 'Нов профил',
     points: 'точки',
-    statusOptions: { draft: 'Чернова', complete: 'Завършен' },
+    statusOptions: { draft: 'Чернова', 'data-pending': 'Данни', complete: 'Завършен', archived: 'Архивиран' },
   },
   capture: {
     step1Title: 'Стъпка 1: Параметри',

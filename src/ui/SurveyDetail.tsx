@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { labels } from './labels';
-import { useSurvey, useLines } from '../cache/hooks';
+import { useSurvey, useLines, useLineMedia } from '../cache/hooks';
 import { finalizeSurvey } from '../domain/survey-service';
-import { ProfileCanvas } from './ProfileCanvas';
+import { useBmpUrls } from './util/useBmpUrls';
+import type { LineRow } from '../cache/db';
 
 interface Props {
   surveyId: string;
@@ -102,6 +103,41 @@ export function SurveyDetail({ surveyId, onEdit, onImport, onNewLine, onOpenLine
   );
 }
 
+function LineCard({ row, onClick }: { row: LineRow; onClick: () => void }) {
+  const media = useLineMedia(row.id);
+  const screenPaths = (media ?? [])
+    .filter((m) => m.json.kind === 'device-screen')
+    .map((m) => m.storagePath);
+  const bmpUrls = useBmpUrls(screenPaths);
+  const thumbUrl = bmpUrls[0];
+  const l = row.json;
+  const statusLabel = labels.line.statusOptions[l.status as keyof typeof labels.line.statusOptions] ?? l.status;
+
+  return (
+    <button
+      className={`card card--interactive line-card line-card--${l.status}`}
+      onClick={onClick}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: thumbUrl ? 10 : 6 }}>
+        <span className="line-card__label">{l.label}</span>
+        <span className={`chip chip--${l.status}`}>{statusLabel}</span>
+      </div>
+      {thumbUrl && (
+        <img
+          src={thumbUrl}
+          alt={l.label}
+          style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)', marginBottom: 8, objectFit: 'cover' }}
+        />
+      )}
+      <div className="line-card__meta">
+        <span>{l.pointCount} {labels.line.points}</span>
+        <span className="line-card__dot">·</span>
+        <span>{l.pointSpacingM} m</span>
+      </div>
+    </button>
+  );
+}
+
 function LinesList({ surveyId, onOpen }: { surveyId: string; onOpen: (id: string) => void }) {
   const lines = useLines(surveyId);
   if (lines === undefined) return <p className="loading-text">{labels.common.loading}</p>;
@@ -109,32 +145,7 @@ function LinesList({ surveyId, onOpen }: { surveyId: string; onOpen: (id: string
   return (
     <>
       {lines.map((r) => (
-        <button
-          key={r.id}
-          className={`card card--interactive line-card line-card--${r.json.status}`}
-          onClick={() => onOpen(r.id)}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: r.json.points.length > 0 ? 8 : 6 }}>
-            <span className="line-card__label">{r.json.label}</span>
-            <span className={`chip chip--${r.json.status}`}>{labels.line.statusOptions[r.json.status as keyof typeof labels.line.statusOptions] ?? r.json.status}</span>
-          </div>
-          {r.json.points.length > 0 && (
-            <div style={{ marginBottom: 8, borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
-              <ProfileCanvas
-                points={r.json.points}
-                channelSet={r.json.channelSetSnapshot}
-                cellW={3}
-                cellH={5}
-                thumbnail
-              />
-            </div>
-          )}
-          <div className="line-card__meta">
-            <span>{r.json.pointCount} {labels.line.points}</span>
-            <span className="line-card__dot">·</span>
-            <span>{r.json.pointSpacingM} m</span>
-          </div>
-        </button>
+        <LineCard key={r.id} row={r} onClick={() => onOpen(r.id)} />
       ))}
     </>
   );

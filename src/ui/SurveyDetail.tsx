@@ -7,10 +7,11 @@ interface Props {
   surveyId: string;
   onEdit: () => void;
   onImport: () => void;
+  onNewLine: () => void;
   onOpenLine: (lineId: string) => void;
 }
 
-export function SurveyDetail({ surveyId, onEdit, onImport, onOpenLine }: Props) {
+export function SurveyDetail({ surveyId, onEdit, onImport, onNewLine, onOpenLine }: Props) {
   const row = useSurvey(surveyId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -86,6 +87,14 @@ export function SurveyDetail({ surveyId, onEdit, onImport, onOpenLine }: Props) 
 
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{l.linesHeading}</h2>
+        <button
+          className="btn-primary"
+          onClick={onNewLine}
+          disabled={busy}
+          style={{ fontSize: '0.9rem', padding: '0 var(--space-4)', height: 40, minHeight: 'unset' }}
+        >
+          + {labels.line.new}
+        </button>
       </div>
       <LinesList surveyId={surveyId} onOpen={onOpenLine} />
     </section>
@@ -99,13 +108,19 @@ function LinesList({ surveyId, onOpen }: { surveyId: string; onOpen: (id: string
   return (
     <>
       {lines.map((r) => (
-        <button key={r.id} className="card card--interactive" onClick={() => onOpen(r.id)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--space-4)', minHeight: 'unset' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-primary)' }}>{r.json.label}</strong>
-            <span className={`chip chip--${r.json.status}`}>{r.json.status}</span>
+        <button
+          key={r.id}
+          className={`card card--interactive line-card line-card--${r.json.status}`}
+          onClick={() => onOpen(r.id)}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span className="line-card__label">{r.json.label}</span>
+            <span className={`chip chip--${r.json.status}`}>{labels.line.statusOptions[r.json.status as keyof typeof labels.line.statusOptions] ?? r.json.status}</span>
           </div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 4 }}>
-            {r.json.pointCount} точки · {r.json.pointSpacingM} m
+          <div className="line-card__meta">
+            <span>{r.json.pointCount} {labels.line.points}</span>
+            <span className="line-card__dot">·</span>
+            <span>{r.json.pointSpacingM} m</span>
           </div>
         </button>
       ))}

@@ -81,6 +81,7 @@ function SurveyDetailRoute({ params }: { params: { id: string; svId: string } })
       surveyId={params.svId}
       onEdit={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/edit`)}
       onImport={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/import`)}
+      onNewLine={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/new`)}
       onOpenLine={(lnId) => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/${lnId}`)}
     />
   );

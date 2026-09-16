@@ -398,6 +398,36 @@ input::placeholder, input:not([type])::placeholder { color: var(--text-faint); }
 .survey-card__date { font-family: var(--font-mono); font-size: 0.82rem; color: var(--color-primary); }
 .survey-card__meta { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
 
+/* ── Line cards (instrument-panel style with status accent) ── */
+.line-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  min-height: unset;
+  border-left: 3px solid var(--border-subtle);
+  padding-left: calc(var(--space-4) - 3px);
+}
+.line-card--complete { border-left-color: #38bdf8; }
+.line-card--draft    { border-left-color: #607d93; }
+
+.line-card__label {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+}
+.line-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.line-card__dot { color: var(--border-input); }
+
 /* ── Sync indicator ── */
 .sync-indicator {
   font-family: var(--font-mono);

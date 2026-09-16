@@ -135,6 +135,9 @@ export const labels = {
     verticesFixed: 'Фиксирани върхове',
     noLines: 'Няма профили. Създай първия.',
     newLine: 'Нов профил',
+    new: 'Нов профил',
+    points: 'точки',
+    statusOptions: { draft: 'Чернова', complete: 'Завършен' },
   },
   capture: {
     step1Title: 'Стъпка 1: Параметри',

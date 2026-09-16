@@ -102,6 +102,13 @@ describe('importPqwtIntoLine — happy path', () => {
     expect(updatedLine.channelSetSnapshot.channels).toHaveLength(36);
     expect(updatedLine.channelSetSnapshot.channels[0].pseudoDepthM).toBeCloseTo(4.167, 2);
     expect(updatedLine.status).toBe('complete');
+
+    // Points should be constructed from the 3-point fixture + line vertices
+    expect(updatedLine.points).toHaveLength(3);
+    expect(updatedLine.points[0].index).toBe(1);
+    expect(updatedLine.points[0].offsetM).toBe(0);
+    expect(updatedLine.points[0].coordSource).toBe('interpolated');
+    expect(updatedLine.points[0].readings[0].values).toHaveLength(36);
   });
 
   it('reads back verbatim CSV bytes matching the input exactly (§7.3)', async () => {

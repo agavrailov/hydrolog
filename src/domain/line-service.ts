@@ -1,4 +1,4 @@
-import type { Line, Vertex } from './types';
+import type { Line, Vertex, Point } from './types';
 import { newId } from '../util/id';
 import { writeJson, fileExists } from '../storage/atomic';
 import { getOrCreatePath, getPath, lineFolderName } from '../storage/paths';
@@ -158,7 +158,7 @@ export async function updateLine(id: string, patch: LineUpdateInput): Promise<Li
 
 export type AttachDeviceDataInput = Pick<Line,
   'channelSetSnapshot' | 'pointCount' | 'deviceStartPointIndex' | 'deviceLineNumber' | 'mode'
-> & { status?: Line['status'] };
+> & { status?: Line['status']; points?: Point[] };
 
 export async function attachDeviceData(id: string, patch: AttachDeviceDataInput): Promise<Line> {
   const root = getRoot();
@@ -183,6 +183,7 @@ export async function attachDeviceData(id: string, patch: AttachDeviceDataInput)
     deviceLineNumber: patch.deviceLineNumber,
     mode: patch.mode,
     status: patch.status ?? existing.status,
+    points: patch.points ?? existing.points,
     updatedAt: now,
     revision: existing.revision + 1,
   };

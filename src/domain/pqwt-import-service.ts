@@ -8,6 +8,7 @@ import { getDb } from '../cache/db';
 import { parsePqwtCsv } from './pqwt-parser';
 import { buildPqwtChannelSet } from './pqwt-channel-set';
 import { attachDeviceData } from './line-service';
+import { buildLinePoints } from './line-points';
 import type { PqwtLineCandidate } from './pqwt-import-scanner';
 
 export interface ImportInto {
@@ -70,6 +71,17 @@ export async function importPqwtIntoLine(input: ImportInto): Promise<ImportResul
     deviceModel: svRow.json.deviceModel,
   });
 
+  const importedAt = new Date();
+
+  // 3b. Build Line.points[] — GPS-interpolated positions zipped with readings
+  const points = buildLinePoints({
+    vertices: lineRow.json.vertices,
+    pointCount: parsed.pointCount,
+    channelSet: channelSetSnapshot,
+    parsedReadings: parsed.readings,
+    recordedAt: importedAt,
+  });
+
   // 4. Write verbatim raw files to device-files/ (§7.3)
   const lineDirSegments = [
     'sites', siteRow.folderName, 'surveys', svRow.folderName, 'lines', lineRow.folderName,
@@ -93,7 +105,7 @@ export async function importPqwtIntoLine(input: ImportInto): Promise<ImportResul
   await writeBlob(deviceFilesDir, 'sha256.txt', new TextEncoder().encode(sha256Manifest));
 
   // 6. Write parsed readings.csv (long format; skip null values per brief)
-  const recordedAtIso = new Date().toISOString();
+  const recordedAtIso = importedAt.toISOString();
   const readingsCsv = readingsToLongCsv(parsed.channelLabels, parsed.readings, recordedAtIso);
   await writeBlob(lineDir, 'readings.csv', new TextEncoder().encode(readingsCsv));
 
@@ -104,7 +116,7 @@ export async function importPqwtIntoLine(input: ImportInto): Promise<ImportResul
   if (input.candidate.processedBmp) bmpFiles.push(input.candidate.processedBmp);
 
   const point1 = lineRow.json.vertices[0];
-  const now = new Date();
+  const now = importedAt;
   for (let i = 0; i < bmpFiles.length; i++) {
     const bmp = bmpFiles[i];
     const bytes = new Uint8Array(await bmp.arrayBuffer());
@@ -141,6 +153,7 @@ export async function importPqwtIntoLine(input: ImportInto): Promise<ImportResul
     deviceLineNumber: parsed.deviceLineLabel,
     mode: 'multi-frequency',
     status: 'complete',
+    points,
   });
 
   return {

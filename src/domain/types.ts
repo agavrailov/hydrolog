@@ -265,7 +265,7 @@ export interface Survey extends AuditFields {
   timezone: string;               // IANA, e.g. "Europe/Sofia"
   operator: string;
   deviceModel: string;
-  deviceSerial: string;
+  deviceSerial?: string;
   firmware?: string;
   weather?: string;
   airTempC?: number;
@@ -274,6 +274,7 @@ export interface Survey extends AuditFields {
   purpose?: string;
   summary?: string;
   qualityFlag: 'good' | 'noisy' | 'repeat-needed';
+  noiseSources?: string[];        // free tags, e.g. ['hv', 'cell']
   finalizedAt?: Date;             // locks the survey
 }
 
@@ -291,7 +292,7 @@ export interface Site extends AuditFields {
   boundary?: LatLon[];            // polygon
   accessNotes: string;
   landUse: string;
-  status: 'surveyed' | 'recommended' | 'not-recommended' | 'drilled' | 'archived';
+  status: 'planned' | 'surveyed' | 'recommended' | 'not-recommended' | 'drilled' | 'archived';
   tags: string[];
 }
 

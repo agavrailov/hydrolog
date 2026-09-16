@@ -116,7 +116,8 @@ describe('scanRoot', () => {
       d.getDirectoryHandle('BG-SOF-0043_x'),
     );
     await siteDir.removeEntry('site.json');
-    await expect(scanRoot(root)).rejects.toThrow(/site\.json/);
+    const result = await scanRoot(root);
+    expect(result.sites).toHaveLength(0);
   });
 
   it('skips _tombstones/, _backup_pre_migration_*, _sync_probe/', async () => {

@@ -1,14 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import { labels } from './labels';
 import { pickRootFolder } from '../storage/fs';
 import { scanPqwtImportRoot, type PqwtLineCandidate, type PqwtImportScan } from '../domain/pqwt-import-scanner';
-import { importPqwtIntoLine } from '../domain/pqwt-import-service';
-import { useLines } from '../cache/hooks';
+import { importPqwtAsNewLine } from '../domain/pqwt-import-service';
 
 type RowStatus = 'idle' | 'importing' | 'ok' | 'error';
 interface Row {
   candidate: PqwtLineCandidate;
-  targetLineId: string;
   status: RowStatus;
   message?: string;
 }
@@ -28,29 +26,15 @@ function bmpBadge(c: PqwtLineCandidate): string {
   return l.bmpNone;
 }
 
+function pointCount(c: PqwtLineCandidate): number {
+  return c.csvText.split(/\r?\n/).filter((x) => x.length > 0).length - 1;
+}
+
 export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
   const [scan, setScan] = useState<PqwtImportScan | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const lines = useLines(surveyId);
-
-  const availableTargets = useMemo(
-    () => (lines ?? []).filter((r) => r.json.deviceStartPointIndex === undefined),
-    [lines],
-  );
-
-  useEffect(() => {
-    if (!scan || rows.length === 0) return;
-    setRows((prev) => prev.map((row) => {
-      if (row.targetLineId) return row;
-      const match = availableTargets.find((t) =>
-        t.json.label === row.candidate.folderName ||
-        t.json.deviceLineNumber === row.candidate.deviceLineLabel,
-      );
-      return match ? { ...row, targetLineId: match.id } : row;
-    }));
-  }, [scan, availableTargets]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onPick = async () => {
     setError(null);
@@ -59,7 +43,7 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
       const picked = await pickRootFolder();
       const s = await scanPqwtImportRoot(picked);
       setScan(s);
-      setRows(s.candidates.map((c) => ({ candidate: c, targetLineId: '', status: 'idle' as RowStatus })));
+      setRows(s.candidates.map((c) => ({ candidate: c, status: 'idle' as RowStatus })));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -67,18 +51,13 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
     }
   };
 
-  const canStart = rows.length > 0 && rows.every((r) => r.targetLineId !== '');
-
   const onStart = async () => {
     setBusy(true);
     setError(null);
     for (let i = 0; i < rows.length; i++) {
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: 'importing' } : r));
       try {
-        await importPqwtIntoLine({
-          targetLineId: rows[i].targetLineId,
-          candidate: rows[i].candidate,
-        });
+        await importPqwtAsNewLine({ surveyId, candidate: rows[i].candidate });
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: 'ok' } : r));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -88,6 +67,7 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
     setBusy(false);
   };
 
+  const allDone = rows.length > 0 && rows.every((r) => r.status === 'ok' || r.status === 'error');
   const l = labels.import;
 
   return (
@@ -107,13 +87,6 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
 
       {scan && rows.length > 0 && (
         <>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 'var(--space-2)' }}>
-            {l.confirmMandatoryHint}
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 'var(--space-4)' }}>
-            {l.verbatimHint}
-          </p>
-
           <h2>{l.candidatesHeading}</h2>
 
           <div style={{ overflowX: 'auto' }}>
@@ -121,36 +94,19 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
               <thead>
                 <tr>
                   <th>{l.tableColFolder}</th>
-                  <th>{l.tableColHeaderLabel}</th>
                   <th>{l.tableColMode}</th>
                   <th>{l.tableColPointCount}</th>
                   <th>{l.tableColBmps}</th>
-                  <th>{l.tableColTarget}</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
+                {rows.map((row) => (
                   <tr key={row.candidate.folderName}>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{row.candidate.folderName}</td>
-                    <td>{row.candidate.deviceLineLabel}</td>
-                    <td>{row.candidate.depthRangeM}</td>
-                    <td style={{ textAlign: 'right' }}>
-                      {row.candidate.csvText.split(/\r?\n/).filter((x) => x.length > 0).length - 1}
-                    </td>
+                    <td>{row.candidate.depthRangeM}M</td>
+                    <td style={{ textAlign: 'right' }}>{pointCount(row.candidate)}</td>
                     <td>{bmpBadge(row.candidate)}</td>
-                    <td>
-                      <select
-                        value={row.targetLineId}
-                        onChange={(e) => setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, targetLineId: e.target.value } : r))}
-                        disabled={row.status === 'importing' || row.status === 'ok'}
-                      >
-                        <option value="">{l.targetPickPlaceholder}</option>
-                        {availableTargets.map((t) => (
-                          <option key={t.id} value={t.id}>{t.json.label}</option>
-                        ))}
-                      </select>
-                    </td>
                     <td>
                       {row.status === 'importing' && <span style={{ color: 'var(--color-secondary)' }}>{l.importing}</span>}
                       {row.status === 'ok' && <span style={{ color: 'var(--color-success)' }}>✓ {l.importedOk}</span>}
@@ -172,7 +128,7 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
           )}
 
           <div className="btn-row">
-            <button className="btn-primary" onClick={onStart} disabled={!canStart || busy}>
+            <button className="btn-primary" onClick={onStart} disabled={busy || allDone}>
               {busy ? l.importing : l.startImport}
             </button>
             <button className="btn-secondary" onClick={onDone} disabled={busy}>{labels.common.back}</button>

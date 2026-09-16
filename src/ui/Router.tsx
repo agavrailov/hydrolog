@@ -55,6 +55,7 @@ function SiteDetailRoute({ params }: { params: { id: string } }) {
   return (
     <SiteDetail
       siteId={params.id}
+      onBack={() => setLocation('/')}
       onEdit={() => setLocation(`/sites/${params.id}/edit`)}
       onDeleted={() => setLocation('/')}
       onNewSurvey={() => setLocation(`/sites/${params.id}/surveys/new`)}
@@ -81,7 +82,6 @@ function SurveyDetailRoute({ params }: { params: { id: string; svId: string } })
       surveyId={params.svId}
       onEdit={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/edit`)}
       onBack={() => setLocation(`/sites/${params.id}`)}
-      onNewLine={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/new`)}
       onImport={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/import`)}
     />
   );

@@ -4,6 +4,8 @@ import type { Survey } from '../domain/types';
 import type { SurveyRow } from '../cache/db';
 import { createSurvey, updateSurvey, type SurveyCreateInput } from '../domain/survey-service';
 import { useLastUsed } from './util/useLastUsed';
+import { useSite } from '../cache/hooks';
+import { fetchWeather } from './util/fetchWeather';
 
 type CreateProps = {
   mode: 'create';
@@ -21,14 +23,16 @@ type EditProps = {
 
 type Props = CreateProps | EditProps;
 
+const DEFAULT_OPERATOR = 'Антон Гавраилов';
+const DEFAULT_DEVICE   = 'GT-150';
+const DEFAULT_TZ       = 'Europe/Sofia';
+
 interface FormState {
   startedAt: string;
   endedAt: string;
   timezone: string;
   operator: string;
   deviceModel: string;
-  deviceSerial: string;
-  firmware: string;
   weather: string;
   airTempC: string;
   precipLast48h: Survey['precipLast48h'];
@@ -36,17 +40,14 @@ interface FormState {
   purpose: string;
   summary: string;
   qualityFlag: Survey['qualityFlag'];
-}
-
-function detectTimezone(): string {
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'Europe/Sofia'; }
+  noiseSources: string[];
 }
 
 function toLocalInput(d: Date): string {
-  const y = d.getFullYear();
+  const y  = d.getFullYear();
   const mo = String(d.getMonth() + 1).padStart(2, '0');
   const da = String(d.getDate()).padStart(2, '0');
-  const h = String(d.getHours()).padStart(2, '0');
+  const h  = String(d.getHours()).padStart(2, '0');
   const mi = String(d.getMinutes()).padStart(2, '0');
   return `${y}-${mo}-${da}T${h}:${mi}`;
 }
@@ -54,69 +55,92 @@ function toLocalInput(d: Date): string {
 function initialFromRow(row: SurveyRow): FormState {
   const s = row.json;
   return {
-    startedAt: toLocalInput(new Date(s.startedAt)),
-    endedAt: s.endedAt ? toLocalInput(new Date(s.endedAt)) : '',
-    timezone: s.timezone,
-    operator: s.operator,
-    deviceModel: s.deviceModel,
-    deviceSerial: s.deviceSerial,
-    firmware: s.firmware ?? '',
-    weather: s.weather ?? '',
-    airTempC: s.airTempC != null ? String(s.airTempC) : '',
+    startedAt:    toLocalInput(new Date(s.startedAt)),
+    endedAt:      s.endedAt ? toLocalInput(new Date(s.endedAt)) : '',
+    timezone:     s.timezone,
+    operator:     s.operator,
+    deviceModel:  s.deviceModel,
+    weather:      s.weather ?? '',
+    airTempC:     s.airTempC != null ? String(s.airTempC) : '',
     precipLast48h: s.precipLast48h,
-    terrain: s.terrain ?? '',
-    purpose: s.purpose ?? '',
-    summary: s.summary ?? '',
-    qualityFlag: s.qualityFlag,
+    terrain:      s.terrain ?? '',
+    purpose:      s.purpose ?? '',
+    summary:      s.summary ?? '',
+    qualityFlag:  s.qualityFlag,
+    noiseSources: s.noiseSources ?? [],
   };
 }
 
 const EMPTY: FormState = {
-  startedAt: toLocalInput(new Date()),
-  endedAt: '',
-  timezone: detectTimezone(),
-  operator: '',
-  deviceModel: 'GT-150',
-  deviceSerial: '',
-  firmware: '',
-  weather: '',
-  airTempC: '',
+  startedAt:    toLocalInput(new Date()),
+  endedAt:      '',
+  timezone:     DEFAULT_TZ,
+  operator:     DEFAULT_OPERATOR,
+  deviceModel:  DEFAULT_DEVICE,
+  weather:      '',
+  airTempC:     '',
   precipLast48h: 'none',
-  terrain: '',
-  purpose: '',
-  summary: '',
-  qualityFlag: 'good',
+  terrain:      '',
+  purpose:      '',
+  summary:      '',
+  qualityFlag:  'good',
+  noiseSources: [],
 };
 
-const DEVICE_MODELS = ['GT-150', 'PQWT-TC150', 'PQWT-TC300', 'PQWT-TC500'];
-
 export function SurveyForm(props: Props) {
+  const siteRow = useSite(props.mode === 'create' ? props.siteId : undefined);
+
   const initial = props.mode === 'edit' ? initialFromRow(props.surveyRow) : EMPTY;
   const [state, setState] = useState<FormState>(initial);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editReason, setEditReason] = useState('');
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
-  const [lastOperator, setLastOperator] = useLastUsed('operator', '');
-  const [lastDeviceModel, setLastDeviceModel] = useLastUsed('deviceModel', 'GT-150');
-  const [lastDeviceSerial, setLastDeviceSerial] = useLastUsed('deviceSerial', '');
+  const [lastOperator, setLastOperator] = useLastUsed('operator', DEFAULT_OPERATOR);
+  const [lastDeviceModel, setLastDeviceModel] = useLastUsed('deviceModel', DEFAULT_DEVICE);
 
   useEffect(() => {
     if (props.mode === 'create') {
       setState((s) => ({
         ...s,
-        operator: lastOperator || s.operator,
-        deviceModel: lastDeviceModel || s.deviceModel,
-        deviceSerial: lastDeviceSerial || s.deviceSerial,
+        operator:    lastOperator || DEFAULT_OPERATOR,
+        deviceModel: lastDeviceModel || DEFAULT_DEVICE,
       }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-fetch weather once site centroid is available
+  useEffect(() => {
+    if (props.mode !== 'create' || !siteRow) return;
+    const { lat, lon } = siteRow.json.centroid;
+    if (!lat || !lon) return;
+    setWeatherLoading(true);
+    fetchWeather(lat, lon).then((w) => {
+      if (w) {
+        setState((s) => ({
+          ...s,
+          weather:  s.weather  || w.description,
+          airTempC: s.airTempC || String(Math.round(w.tempC)),
+        }));
+      }
+    }).finally(() => setWeatherLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteRow?.id]);
+
   const isFinalized = props.mode === 'edit' && !!props.surveyRow.json.finalizedAt;
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setState((s) => ({ ...s, [k]: v }));
+
+  const toggleNoise = (id: string) =>
+    setState((s) => ({
+      ...s,
+      noiseSources: s.noiseSources.includes(id)
+        ? s.noiseSources.filter((x) => x !== id)
+        : [...s.noiseSources, id],
+    }));
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -130,26 +154,24 @@ export function SurveyForm(props: Props) {
     setSaving(true);
     try {
       const base: SurveyCreateInput = {
-        startedAt: new Date(state.startedAt),
-        endedAt: state.endedAt ? new Date(state.endedAt) : undefined,
-        timezone: state.timezone,
-        operator: state.operator,
-        deviceModel: state.deviceModel,
-        deviceSerial: state.deviceSerial,
-        firmware: state.firmware || undefined,
-        weather: state.weather || undefined,
-        airTempC: state.airTempC ? Number(state.airTempC) : undefined,
+        startedAt:    new Date(state.startedAt),
+        endedAt:      state.endedAt ? new Date(state.endedAt) : undefined,
+        timezone:     state.timezone,
+        operator:     state.operator,
+        deviceModel:  state.deviceModel,
+        weather:      state.weather || undefined,
+        airTempC:     state.airTempC ? Number(state.airTempC) : undefined,
         precipLast48h: state.precipLast48h,
-        terrain: state.terrain || undefined,
-        purpose: state.purpose || undefined,
-        summary: state.summary || undefined,
-        qualityFlag: state.qualityFlag,
+        terrain:      state.terrain || undefined,
+        purpose:      state.purpose || undefined,
+        summary:      state.summary || undefined,
+        qualityFlag:  state.qualityFlag,
+        noiseSources: state.noiseSources.length > 0 ? state.noiseSources : undefined,
       };
       if (props.mode === 'create') {
         const sv = await createSurvey(props.siteId, base);
         setLastOperator(state.operator);
         setLastDeviceModel(state.deviceModel);
-        setLastDeviceSerial(state.deviceSerial);
         props.onSaved(sv);
       } else {
         const sv = await updateSurvey(props.surveyRow.id, base, {
@@ -176,55 +198,6 @@ export function SurveyForm(props: Props) {
         <span className="field__label field__label--required">{l.fields.startedAt}</span>
         <input type="datetime-local" value={state.startedAt}
                onChange={(e) => set('startedAt', e.target.value)} required />
-      </label>
-
-      <label className="field">
-        <span className="field__label">{l.fields.endedAt}</span>
-        <input type="datetime-local" value={state.endedAt}
-               onChange={(e) => set('endedAt', e.target.value)} />
-      </label>
-
-      <label className="field">
-        <span className="field__label field__label--required">{l.fields.timezone}</span>
-        <input value={state.timezone} onChange={(e) => set('timezone', e.target.value)} required />
-      </label>
-
-      <label className="field">
-        <span className="field__label field__label--required">{l.fields.operator}</span>
-        <input value={state.operator} onChange={(e) => set('operator', e.target.value)} required />
-      </label>
-
-      <div className="field">
-        <span className="field__label field__label--required">{l.fields.deviceModel}</span>
-        <div className="tap-group" style={{ marginBottom: 'var(--space-2)' }}>
-          {DEVICE_MODELS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={`tap-btn${state.deviceModel === m ? ' tap-btn--active' : ''}`}
-              onClick={() => set('deviceModel', m)}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <input
-          id="survey-deviceModel"
-          value={state.deviceModel}
-          onChange={(e) => set('deviceModel', e.target.value)}
-          required
-          aria-label={l.fields.deviceModel}
-        />
-      </div>
-
-      <label className="field">
-        <span className="field__label field__label--required">{l.fields.deviceSerial}</span>
-        <input value={state.deviceSerial} onChange={(e) => set('deviceSerial', e.target.value)} required />
-      </label>
-
-      <label className="field">
-        <span className="field__label">{l.fields.firmware}</span>
-        <input value={state.firmware} onChange={(e) => set('firmware', e.target.value)} />
       </label>
 
       <div className="field">
@@ -259,15 +232,36 @@ export function SurveyForm(props: Props) {
         </div>
       </div>
 
+      <div className="field">
+        <span className="field__label">{l.fields.noiseSources}</span>
+        <div className="tap-group">
+          {(Object.entries(l.noiseSourceOptions)).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={`tap-btn${state.noiseSources.includes(id) ? ' tap-btn--active' : ''}`}
+              onClick={() => toggleNoise(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <label className="field">
-        <span className="field__label">{l.fields.weather}</span>
-        <input value={state.weather} onChange={(e) => set('weather', e.target.value)} />
+        <span className="field__label">
+          {l.fields.weather}
+          {weatherLoading && <span style={{ marginLeft: 6, color: 'var(--text-muted)', fontWeight: 400 }}>⟳</span>}
+        </span>
+        <input value={state.weather} onChange={(e) => set('weather', e.target.value)}
+               placeholder={weatherLoading ? 'зарежда…' : ''} />
       </label>
 
       <label className="field">
         <span className="field__label">{l.fields.airTempC}</span>
         <input type="number" step="any" value={state.airTempC}
-               onChange={(e) => set('airTempC', e.target.value)} />
+               onChange={(e) => set('airTempC', e.target.value)}
+               placeholder={weatherLoading ? 'зарежда…' : ''} />
       </label>
 
       <label className="field">

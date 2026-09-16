@@ -7,11 +7,10 @@ interface Props {
   surveyId: string;
   onEdit: () => void;
   onBack: () => void;
-  onNewLine: () => void;
   onImport: () => void;
 }
 
-export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: Props) {
+export function SurveyDetail({ surveyId, onEdit, onBack, onImport }: Props) {
   const row = useSurvey(surveyId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,7 +53,7 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
         <dt>{l.fields.timezone}</dt><dd>{s.timezone}</dd>
         <dt>{l.fields.operator}</dt><dd>{s.operator}</dd>
         <dt>{l.fields.deviceModel}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.deviceModel}</dd>
-        <dt>{l.fields.deviceSerial}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.deviceSerial}</dd>
+        {s.deviceSerial && (<><dt>{l.fields.deviceSerial}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{s.deviceSerial}</dd></>)}
         {s.firmware && (<><dt>{l.fields.firmware}</dt><dd>{s.firmware}</dd></>)}
         {s.weather && (<><dt>{l.fields.weather}</dt><dd>{s.weather}</dd></>)}
         {s.airTempC != null && (<><dt>{l.fields.airTempC}</dt><dd>{s.airTempC}</dd></>)}
@@ -63,6 +62,20 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
         {s.purpose && (<><dt>{l.fields.purpose}</dt><dd>{s.purpose}</dd></>)}
         {s.summary && (<><dt>{l.fields.summary}</dt><dd>{s.summary}</dd></>)}
         <dt>{l.fields.qualityFlag}</dt><dd>{l.qualityOptions[s.qualityFlag]}</dd>
+        {s.noiseSources && s.noiseSources.length > 0 && (
+          <>
+            <dt>{l.fields.noiseSources}</dt>
+            <dd>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginTop: 2 }}>
+                {s.noiseSources.map((id) => (
+                  <span key={id} className="chip chip--draft">
+                    {l.noiseSourceOptions[id as keyof typeof l.noiseSourceOptions] ?? id}
+                  </span>
+                ))}
+              </div>
+            </dd>
+          </>
+        )}
       </dl>
 
       <div className="btn-row">
@@ -70,8 +83,7 @@ export function SurveyDetail({ surveyId, onEdit, onBack, onNewLine, onImport }: 
         {!s.finalizedAt && (
           <button className="btn-secondary" onClick={onFinalize} disabled={busy}>{l.finalize}</button>
         )}
-        <button className="btn-primary" onClick={onNewLine} disabled={busy}>{labels.line.newLine}</button>
-        <button className="btn-secondary" onClick={onImport} disabled={busy}>{labels.import.surveyDetailButton}</button>
+        <button className="btn-primary" onClick={onImport} disabled={busy}>{labels.import.surveyDetailButton}</button>
       </div>
 
       <div className="section-heading">

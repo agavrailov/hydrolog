@@ -39,6 +39,7 @@ export const labels = {
       status: 'Статус',
     },
     statusOptions: {
+      planned: 'планиран',
       surveyed: 'проучен',
       recommended: 'препоръчан',
       'not-recommended': 'непрепоръчан',
@@ -69,6 +70,7 @@ export const labels = {
       purpose: 'Цел',
       summary: 'Резюме',
       qualityFlag: 'Качество',
+      noiseSources: 'Източници на шум / особености',
     },
     precipOptions: {
       none: 'без',
@@ -79,6 +81,17 @@ export const labels = {
       good: 'добро',
       noisy: 'зашумено',
       'repeat-needed': 'нуждае се от повторение',
+    },
+    noiseSourceOptions: {
+      nn:    'НН далекопровод',
+      mn:    'СН далекопровод',
+      hv:    'ВН далекопровод',
+      cell:  'Мобилна клетка',
+      metal: 'Метална конструкция',
+      pipe:  'Водопровод',
+      rail:  'Ж.п. линия',
+      fence: 'Метална ограда',
+      other: 'Други',
     },
     createTitle: 'Ново проучване',
     editTitle: 'Редакция на проучване',

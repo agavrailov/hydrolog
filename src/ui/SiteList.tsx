@@ -16,6 +16,11 @@ export function SiteList({ onOpen, onNew }: Props) {
     <div>
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{labels.home.sitesHeading}</h2>
+        {onNew && (
+          <button className="btn-primary" onClick={onNew} style={{ fontSize: '0.9rem', padding: '0 var(--space-4)', height: 40, minHeight: 'unset' }}>
+            + {labels.home.newSite}
+          </button>
+        )}
       </div>
 
       <div className="search-bar">
@@ -28,7 +33,17 @@ export function SiteList({ onOpen, onNew }: Props) {
       </div>
 
       {sites === undefined && <p className="loading-text">{labels.common.loading}</p>}
-      {sites?.length === 0 && <p className="loading-text">{labels.home.noSites}</p>}
+      {sites?.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 'var(--space-6) var(--space-4)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)' }}>
+          <div style={{ fontSize: '3rem', lineHeight: 1 }}>📍</div>
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>{labels.home.noSites}</p>
+          {onNew && (
+            <button className="btn-primary" onClick={onNew} style={{ width: '100%', maxWidth: 280 }}>
+              + {labels.home.newSite}
+            </button>
+          )}
+        </div>
+      )}
 
       {sites?.map((s) => (
         <button

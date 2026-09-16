@@ -23,18 +23,29 @@ export function regionCode(regionName: string): string {
   return lettersOnly.slice(0, 3).toUpperCase();
 }
 
-export function generateSiteCode(regionName: string, existingCodes: string[]): string {
+export function generateSiteCode(
+  regionName: string,
+  existingCodes: string[],
+  suggestedNumber?: number,
+): string {
   const rc = regionCode(regionName);
   const prefix = `BG-${rc}-`;
-  const pattern = new RegExp(`^${prefix}(\\d{4})$`);
-  let max = 0;
+  const pattern = new RegExp(`^${prefix}(\\d+)$`);
+
+  const taken = new Set<number>();
   for (const code of existingCodes) {
     const m = pattern.exec(code);
-    if (m) {
-      const n = parseInt(m[1], 10);
-      if (n > max) max = n;
-    }
+    if (m) taken.add(parseInt(m[1], 10));
   }
-  const next = max + 1;
+
+  let next: number;
+  if (suggestedNumber !== undefined && !taken.has(suggestedNumber)) {
+    next = suggestedNumber;
+  } else {
+    let max = 0;
+    for (const n of taken) if (n > max) max = n;
+    next = max + 1;
+  }
+
   return `${prefix}${String(next).padStart(4, '0')}`;
 }

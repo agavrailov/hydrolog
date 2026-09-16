@@ -5,13 +5,14 @@ import { softDeleteSite } from '../domain/site-service';
 
 interface Props {
   siteId: string;
+  onBack: () => void;
   onEdit: () => void;
   onDeleted: () => void;
   onNewSurvey: () => void;
   onOpenSurvey: (surveyId: string) => void;
 }
 
-export function SiteDetail(props: Props) {
+export function SiteDetail({ onBack, ...props }: Props) {
   const site = useSite(props.siteId);
   const surveys = useSurveys(props.siteId);
   const [busy, setBusy] = useState(false);
@@ -38,6 +39,7 @@ export function SiteDetail(props: Props) {
 
   return (
     <section>
+      <button className="btn-ghost" onClick={onBack}>{labels.common.back}</button>
       <header style={{ marginBottom: 'var(--space-4)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 4 }}>
           <h1 style={{ margin: 0 }}>{s.name}</h1>

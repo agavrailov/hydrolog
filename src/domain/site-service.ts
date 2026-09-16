@@ -23,7 +23,9 @@ export async function createSite(input: SiteCreateInput): Promise<Site> {
   const db = getDb();
 
   const existing = await db.sites.toArray();
-  const code = generateSiteCode(input.region, existing.map((r) => r.code));
+  const nameMatch = input.name.match(/^Обект(\d+)$/);
+  const suggestedNumber = nameMatch ? parseInt(nameMatch[1], 10) : undefined;
+  const code = generateSiteCode(input.region, existing.map((r) => r.code), suggestedNumber);
 
   const now = new Date();
   const site: Site = {

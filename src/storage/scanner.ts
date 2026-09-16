@@ -76,9 +76,13 @@ export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanRes
 
   for (const siteFolderName of siteDirs) {
     const siteDir = await sitesRoot.getDirectoryHandle(siteFolderName);
-    const site = await readJson<Site>(siteDir, 'site.json').catch((e) => {
-      throw new Error(`missing or invalid site.json in ${siteFolderName}: ${e.message}`);
-    });
+    let site: Site;
+    try {
+      site = await readJson<Site>(siteDir, 'site.json');
+    } catch (e) {
+      console.warn(`Skipping ${siteFolderName}: missing or invalid site.json —`, e);
+      continue;
+    }
     const regulatory = await optionalJson<RegulatoryContext>(siteDir, 'regulatory.json');
 
     const surveys: SurveyScan[] = [];
@@ -87,9 +91,13 @@ export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanRes
       const surveyDirs = await listDirs(surveysRoot);
       for (const svFolderName of surveyDirs) {
         const svDir = await surveysRoot.getDirectoryHandle(svFolderName);
-        const survey = await readJson<Survey>(svDir, 'survey.json').catch((e) => {
-          throw new Error(`missing or invalid survey.json in ${svFolderName}: ${e.message}`);
-        });
+        let survey: Survey;
+        try {
+          survey = await readJson<Survey>(svDir, 'survey.json');
+        } catch (e) {
+          console.warn(`Skipping ${svFolderName}: missing or invalid survey.json —`, e);
+          continue;
+        }
         const interpretation = await optionalJson<Interpretation>(svDir, 'interpretation.json');
 
         const lines: LineScan[] = [];
@@ -98,9 +106,13 @@ export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanRes
           const lineDirs = await listDirs(linesRoot);
           for (const lnFolderName of lineDirs) {
             const lnDir = await linesRoot.getDirectoryHandle(lnFolderName);
-            const line = await readJson<Line>(lnDir, 'line.json').catch((e) => {
-              throw new Error(`missing or invalid line.json in ${lnFolderName}: ${e.message}`);
-            });
+            let line: Line;
+            try {
+              line = await readJson<Line>(lnDir, 'line.json');
+            } catch (e) {
+              console.warn(`Skipping ${lnFolderName}: missing or invalid line.json —`, e);
+              continue;
+            }
 
             const deviceFilesDir = await getPath(lnDir, ['device-files']);
             const hasDeviceFiles = deviceFilesDir

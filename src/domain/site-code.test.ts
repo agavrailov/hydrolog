@@ -54,4 +54,13 @@ describe('generateSiteCode', () => {
   it('ignores malformed codes', () => {
     expect(generateSiteCode('Софийска', ['not-a-code', 'BG-SOF-XX', 'BG-SOF-0005'])).toBe('BG-SOF-0006');
   });
+
+  it('uses suggestedNumber when provided and not taken', () => {
+    expect(generateSiteCode('Софийска', [], 1150)).toBe('BG-SOF-1150');
+    expect(generateSiteCode('Софийска', ['BG-SOF-0001'], 1151)).toBe('BG-SOF-1151');
+  });
+
+  it('falls back to max+1 when suggestedNumber is already taken', () => {
+    expect(generateSiteCode('Софийска', ['BG-SOF-1150'], 1150)).toBe('BG-SOF-1151');
+  });
 });

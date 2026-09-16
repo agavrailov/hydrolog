@@ -199,6 +199,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   color: var(--color-primary);
 }
 
+input:not([type]),
 input[type="text"],
 input[type="number"],
 input[type="search"],
@@ -232,11 +233,11 @@ select {
   background-position: right 14px center;
   padding-right: 36px;
 }
-input:focus, textarea:focus, select:focus {
+input:not([type]):focus, input:focus, textarea:focus, select:focus {
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
 }
-input::placeholder { color: var(--text-faint); }
+input::placeholder, input:not([type])::placeholder { color: var(--text-faint); }
 
 .input--mono { font-family: var(--font-mono); letter-spacing: 0.03em; }
 
@@ -277,6 +278,7 @@ input::placeholder { color: var(--text-faint); }
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
+.chip--planned          { background: rgba(96,125,147,0.15);  color: #607d93; }
 .chip--surveyed         { background: rgba(56,189,248,0.15);  color: #38bdf8; }
 .chip--recommended      { background: rgba(52,211,153,0.15);  color: #34d399; }
 .chip--not-recommended  { background: rgba(248,113,113,0.15); color: #f87171; }

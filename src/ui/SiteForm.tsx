@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { labels } from './labels';
 import type { Site } from '../domain/types';
 import type { SiteRow } from '../cache/db';
@@ -6,6 +6,19 @@ import { createSite, updateSite, type SiteCreateInput, type SiteUpdateInput } fr
 import { useGeoLocation } from './util/useGeoLocation';
 import { reverseGeocode } from './util/reverseGeocode';
 import { BG_REGIONS } from './BG_REGIONS';
+import { useSites } from '../cache/hooks';
+
+const NAME_BASE = 1150;
+const NAME_PREFIX = 'Обект';
+
+function nextSiteName(sites: SiteRow[]): string {
+  let max = NAME_BASE - 1;
+  for (const s of sites) {
+    const m = s.json.name.match(new RegExp(`^${NAME_PREFIX}(\\d+)$`));
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return `${NAME_PREFIX}${max + 1}`;
+}
 
 type CreateProps = {
   mode: 'create';
@@ -67,21 +80,34 @@ const EMPTY: FormState = {
   accessNotes: '',
   landUse: '',
   tags: '',
-  status: 'surveyed',
+  status: 'planned',
 };
 
 export function SiteForm(props: Props) {
+  const allSites = useSites();
+  const nameAutoSet = useRef(false);
+
   const initial = props.mode === 'edit' ? initialFromRow(props.siteRow) : EMPTY;
   const [state, setState] = useState<FormState>(initial);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
+  const [geoUpdated, setGeoUpdated] = useState(false);
   const geo = useGeoLocation();
+
+  useEffect(() => {
+    if (props.mode !== 'create') return;
+    if (nameAutoSet.current) return;
+    if (allSites === undefined) return;
+    nameAutoSet.current = true;
+    setState((s) => s.name === '' ? { ...s, name: nextSiteName(allSites) } : s);
+  }, [allSites, props.mode]);
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setState((s) => ({ ...s, [k]: v }));
 
   const onGpsFill = () => {
+    setGeoUpdated(false);
     geo.grab(async (r) => {
       set('centroidLat', r.lat.toFixed(6));
       set('centroidLon', r.lon.toFixed(6));
@@ -89,10 +115,13 @@ export function SiteForm(props: Props) {
       try {
         const addr = await reverseGeocode(r.lat, r.lon);
         if (addr) {
-          if (addr.settlement) set('settlement', addr.settlement);
-          if (addr.municipality) set('municipality', addr.municipality);
+          set('settlement', addr.settlement);
+          set('municipality', addr.municipality);
           if (addr.region && BG_REGIONS.includes(addr.region)) set('region', addr.region);
+          set('ekatte', addr.ekatte ?? '');
         }
+        setGeoUpdated(true);
+        setTimeout(() => setGeoUpdated(false), 3000);
       } finally {
         setGeocoding(false);
       }
@@ -181,6 +210,7 @@ export function SiteForm(props: Props) {
           {geo.loading ? '⟳ GPS…' : geocoding ? '⟳ Геокодиране…' : '📍 Взими текущото местоположение'}
         </button>
         {geo.error && <div className="alert alert--error">{geo.error}</div>}
+        {geoUpdated && <div className="alert alert--info" style={{ padding: 'var(--space-2) var(--space-3)', fontSize: '0.85rem' }}>✓ Координатите и адресът са обновени</div>}
       </div>
 
       <div className="form-row-2">
@@ -252,10 +282,44 @@ export function SiteForm(props: Props) {
         <input value={state.ekatte} onChange={(e) => set('ekatte', e.target.value)} />
       </label>
 
-      <label className="field">
+      <div className="field">
         <span className="field__label">{l.fields.cadastralParcelId}</span>
-        <input value={state.cadastralParcelId} onChange={(e) => set('cadastralParcelId', e.target.value)} />
-      </label>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+          <input
+            style={{ flex: 1 }}
+            value={state.cadastralParcelId}
+            onChange={(e) => set('cadastralParcelId', e.target.value)}
+            placeholder="68134.4081.123"
+          />
+          {(state.centroidLat && state.centroidLon) && (<>
+            <a
+              href={`https://www.google.com/maps?q=${state.centroidLat},${state.centroidLon}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost"
+              style={{ whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0 var(--space-3)', height: 'var(--input-h)', display: 'flex', alignItems: 'center' }}
+              title="Виж местоположението в Google Maps"
+            >
+              🗺
+            </a>
+            <a
+              href="https://kais.cadastre.bg/bg/Map/Index"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-ghost"
+              style={{ whiteSpace: 'nowrap', fontSize: '0.85rem', padding: '0 var(--space-3)', height: 'var(--input-h)', display: 'flex', alignItems: 'center' }}
+              title="Отвори КАИС"
+            >
+              КАИС
+            </a>
+          </>)}
+        </div>
+        {(state.centroidLat && state.centroidLon) && (
+          <small style={{ color: 'var(--text-muted)', marginTop: 4 }}>
+            🗺 ориентирай се в Google Maps → отвори КАИС → намери парцела → копирай идентификатора
+          </small>
+        )}
+      </div>
 
       <label className="field">
         <span className="field__label">{l.fields.accessNotes}</span>

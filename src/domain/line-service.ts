@@ -11,6 +11,7 @@ import { defaultChannelSetSnapshot } from './channel-set-defaults';
 export { defaultChannelSetSnapshot };
 
 export interface LineCreateInput {
+  label?: string;               // if omitted, auto-generated (L1, L2, …)
   pointCount: number;
   pointSpacingM: number;
   electrodeSpacingM: number;
@@ -62,9 +63,11 @@ export async function createLine(
   const root = getRoot();
   const db = getDb();
 
-  // Existing labels under this survey
   const siblings = await db.lines.where('surveyId').equals(surveyId).toArray();
-  const label = generateLineLabel(siblings.map((r) => r.json.label));
+  const existingLabels = siblings.map((r) => r.json.label);
+  const label = (input.label && !existingLabels.includes(input.label))
+    ? input.label
+    : generateLineLabel(existingLabels);
 
   const lengthM = polylineLengthM(input.vertices);
 

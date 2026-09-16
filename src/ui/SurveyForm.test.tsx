@@ -33,14 +33,9 @@ describe('<SurveyForm mode="create">', () => {
 
     await userEvent.clear(screen.getByLabelText(/начало/i));
     await userEvent.type(screen.getByLabelText(/начало/i), '2026-09-15T10:00');
-    await userEvent.type(screen.getByLabelText(/оператор/i), 'Anton');
-    await userEvent.type(screen.getByLabelText(/уред \(модел\)/i), 'PQWT-TC300');
-    await userEvent.type(screen.getByLabelText(/сериен номер/i), 'SN1');
     await userEvent.click(screen.getByRole('button', { name: /запази/i }));
 
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
-    const sv = onSaved.mock.calls[0][0];
-    expect(sv.operator).toBe('Anton');
     expect(await getDb().surveys.count()).toBe(1);
   });
 });
@@ -51,7 +46,7 @@ describe('<SurveyForm mode="edit">', () => {
     const sv = await createSurvey(site.id, {
       startedAt: new Date(Date.now() - 3600_000),
       timezone: 'Europe/Sofia', operator: 'Anton',
-      deviceModel: 'PQWT-TC300', deviceSerial: 'x',
+      deviceModel: 'PQWT-TC300',
       precipLast48h: 'none', qualityFlag: 'good',
     });
     await writeSyncProbe(root, new Date());

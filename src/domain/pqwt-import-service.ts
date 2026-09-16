@@ -7,7 +7,7 @@ import { getRoot } from '../storage/fs';
 import { getDb } from '../cache/db';
 import { parsePqwtCsv } from './pqwt-parser';
 import { buildPqwtChannelSet } from './pqwt-channel-set';
-import { attachDeviceData } from './line-service';
+import { attachDeviceData, createLine } from './line-service';
 import { buildLinePoints } from './line-points';
 import type { PqwtLineCandidate } from './pqwt-import-scanner';
 
@@ -47,6 +47,29 @@ async function writeVerbatim(
   await writeBlob(deviceFilesDir, file.name, bytes);
   const sha256 = await sha256Hex(bytes);
   return { path: `device-files/${file.name}`, sha256 };
+}
+
+export interface ImportAsNew {
+  surveyId: string;
+  candidate: PqwtLineCandidate;
+}
+
+export async function importPqwtAsNewLine(input: ImportAsNew): Promise<ImportResult> {
+  const db = getDb();
+  const svRow = await db.surveys.get(input.surveyId);
+  if (!svRow) throw new Error(`survey not found: ${input.surveyId}`);
+
+  const line = await createLine(input.surveyId, {
+    label: input.candidate.folderName,
+    pointCount: 17,
+    pointSpacingM: 1,
+    electrodeSpacingM: 2,
+    mode: 'multi-frequency',
+    dipoleOrientation: 'inline',
+    vertices: [],
+  });
+
+  return importPqwtIntoLine({ targetLineId: line.id, candidate: input.candidate });
 }
 
 export async function importPqwtIntoLine(input: ImportInto): Promise<ImportResult> {

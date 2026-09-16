@@ -30,6 +30,7 @@ describe('<SiteDetail />', () => {
 
     render(<SiteDetail
       siteId={site.id}
+      onBack={() => {}}
       onEdit={() => {}}
       onDeleted={() => {}}
       onNewSurvey={() => {}}
@@ -51,6 +52,7 @@ describe('<SiteDetail />', () => {
     const onDeleted = vi.fn();
     render(<SiteDetail
       siteId={site.id}
+      onBack={() => {}}
       onEdit={() => {}}
       onDeleted={onDeleted}
       onNewSurvey={() => {}}
@@ -74,6 +76,7 @@ describe('<SiteDetail />', () => {
     });
     render(<SiteDetail
       siteId={site.id}
+      onBack={() => {}}
       onEdit={() => {}}
       onDeleted={() => {}}
       onNewSurvey={() => {}}

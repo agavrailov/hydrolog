@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildLinePoints } from './line-points';
+import { polylineLengthM } from './enu';
+import { ELECTRODE_LAYOUT } from './device-config';
 import type { ChannelSetSnapshot, LatLon } from './types';
 
 const TWO_CH: ChannelSetSnapshot = {
@@ -137,5 +139,105 @@ describe('buildLinePoints', () => {
       expect(pt.readings[0].groundingOk).toBe(true);
       expect(pt.readings[0].electrodeTreatment).toBe('none');
     }
+  });
+});
+
+// ─── GT-150 S-A-S electrode layout mapping ────────────────────────────────────
+// The GPS fix is taken at the physical cable endpoints:
+//   electrode 1 (service start) and electrode 22 (service end).
+// The 18 active measurement points sit at electrodes 3–20, i.e. fractions 2/21–19/21.
+// This test block verifies that buildLinePoints with electrodeLayout places
+// each point at the correct physical position — not uniformly across the full cable.
+describe('buildLinePoints — GT-150 electrodeLayout', () => {
+  const GT150 = ELECTRODE_LAYOUT['GT-150']!; // {serviceStart:2, active:18, serviceEnd:2}
+  const POINT_SPACING_M = 2.5;
+  const TOTAL_SPACINGS = 21;                 // 22 electrodes − 1
+  const CABLE_M = TOTAL_SPACINGS * POINT_SPACING_M; // 52.5 m
+
+  // Straight east-west cable at REF_LAT.
+  const R = 6378137;
+  const REF_LAT = 42.32;
+  const cosLat = Math.cos(REF_LAT * Math.PI / 180);
+  function eastLon(metres: number) {
+    return 23.0 + (metres / (R * cosLat)) * (180 / Math.PI);
+  }
+  const V_START: LatLon = { lat: REF_LAT, lon: eastLon(0) };         // electrode 1
+  const V_END: LatLon   = { lat: REF_LAT, lon: eastLon(CABLE_M) };  // electrode 22
+
+  const emptyReadings = Array.from({ length: 18 }, () => [0.0]);
+  const ONE_CH: ChannelSetSnapshot = {
+    name: 'test', deviceModel: 'GT-150', kind: 'frequency',
+    units: 'mV', depthModel: 'linear-nominal', provenanceNote: '',
+    frozenAt: new Date('2026-01-01'),
+    channels: [{ label: 'ch1', order: 0, pseudoDepthM: 10 }],
+  };
+
+  function build() {
+    return buildLinePoints({
+      vertices: [V_START, V_END],
+      pointCount: GT150.active,
+      channelSet: ONE_CH,
+      parsedReadings: emptyReadings,
+      recordedAt: new Date(),
+      electrodeLayout: GT150,
+    });
+  }
+
+  it('returns exactly 18 points (active electrode count)', () => {
+    expect(build()).toHaveLength(18);
+  });
+
+  it('point 1 is at electrode 3 — 5 m from cable start, NOT at the start vertex', () => {
+    const pts = build();
+    const expectedLon = eastLon(2 * POINT_SPACING_M); // 2 spacings from electrode 1
+    expect(pts[0].lon).toBeCloseTo(expectedLon, 4);
+    expect(pts[0].lon).not.toBeCloseTo(V_START.lon, 4);
+  });
+
+  it('point 18 is at electrode 20 — 47.5 m from cable start, NOT at the end vertex', () => {
+    const pts = build();
+    const expectedLon = eastLon(19 * POINT_SPACING_M); // 19 spacings from electrode 1
+    expect(pts[17].lon).toBeCloseTo(expectedLon, 4);
+    expect(pts[17].lon).not.toBeCloseTo(V_END.lon, 4);
+  });
+
+  it('consecutive points are spaced exactly pointSpacingM (2.5 m) apart', () => {
+    const pts = build();
+    for (let i = 1; i < pts.length; i++) {
+      const d = polylineLengthM([pts[i - 1], pts[i]]);
+      expect(d).toBeCloseTo(POINT_SPACING_M, 1); // 0.1 m tolerance
+    }
+  });
+
+  it('no point lands on either service-electrode endpoint', () => {
+    const pts = build();
+    const totalCable = polylineLengthM([V_START, V_END]);
+    for (const pt of pts) {
+      const distFromStart = polylineLengthM([V_START, pt]);
+      const distFromEnd   = polylineLengthM([pt, V_END]);
+      expect(distFromStart).toBeGreaterThan(0.1);
+      expect(distFromEnd).toBeGreaterThan(0.1);
+      expect(distFromStart).toBeLessThan(totalCable - 0.1);
+    }
+  });
+
+  it('without electrodeLayout points are uniformly distributed (cable start to end)', () => {
+    // Verify that removing the layout changes point 1's position — confirms the layout is load-bearing.
+    const withLayout    = build();
+    const withoutLayout = buildLinePoints({
+      vertices: [V_START, V_END],
+      pointCount: 18,
+      channelSet: ONE_CH,
+      parsedReadings: emptyReadings,
+      recordedAt: new Date(),
+      // no electrodeLayout
+    });
+    // With layout: point 1 at 2/21 of cable (~5 m from start)
+    // Without layout: point 1 at 0/17 of cable = start vertex (0 m)
+    expect(withLayout[0].lon).not.toBeCloseTo(withoutLayout[0].lon, 4);
+    // Without layout: first point is at the start vertex
+    expect(withoutLayout[0].lon).toBeCloseTo(V_START.lon, 6);
+    // Without layout: last point is at the end vertex
+    expect(withoutLayout[17].lon).toBeCloseTo(V_END.lon, 6);
   });
 });

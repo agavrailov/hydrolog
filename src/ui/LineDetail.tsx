@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { labels } from './labels';
 import { useLine, useLineMedia, useInterpretation } from '../cache/hooks';
-import { ProfileCanvas } from './ProfileCanvas';
 import { AnomalyForm } from './AnomalyForm';
+import type { AnomalySelection } from './AnomalyForm';
+import { BmpAnnotationLayer } from './BmpAnnotationLayer';
 import { addAnomaly, removeAnomaly } from '../domain/interpretation-service';
 import type { AnomalyInput } from '../domain/interpretation-service';
 import { updateLine, softDeleteLine } from '../domain/line-service';
@@ -14,7 +15,6 @@ interface Props {
   onDeleted?: () => void;
 }
 
-
 const LINE_STATUSES: Line['status'][] = ['draft', 'data-pending', 'complete', 'archived'];
 
 export function LineDetail({ lineId, onDeleted }: Props) {
@@ -24,6 +24,8 @@ export function LineDetail({ lineId, onDeleted }: Props) {
   const [statusBusy, setStatusBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [selection, setSelection] = useState<AnomalySelection | null>(null);
+  const [initialSel, setInitialSel] = useState<Partial<AnomalySelection> | undefined>(undefined);
 
   const deviceScreenMedia = (media ?? []).filter((m) => m.json.kind === 'device-screen');
   const deviceScreenPaths = deviceScreenMedia.map((m) => m.storagePath);
@@ -59,11 +61,17 @@ export function LineDetail({ lineId, onDeleted }: Props) {
     }
   }
 
+  async function handleCalibrate(cal: Line['bmpCalibration']) {
+    await updateLine(lineId, { bmpCalibration: cal });
+  }
+
   if (!row) return <p className="loading-text">{labels.common.loading}</p>;
   const l = row.json;
   const ll = labels.line;
-  const pl = labels.profile;
   const al = labels.anomaly;
+
+  const maxDepthM = l.channelSetSnapshot.channels.at(-1)?.pseudoDepthM ?? 0;
+  const hasDeviceData = l.points.length > 0;
 
   return (
     <section>
@@ -73,16 +81,19 @@ export function LineDetail({ lineId, onDeleted }: Props) {
           <span className={`chip chip--${l.status}`}>{ll.statusOptions[l.status]}</span>
           <div style={{ marginLeft: 'auto' }}>
             {!confirmDelete ? (
-              <button className="btn-danger" onClick={() => setConfirmDelete(true)} style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+              <button className="btn-danger" onClick={() => setConfirmDelete(true)}
+                style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
                 {labels.common.delete}
               </button>
             ) : (
               <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--color-danger)' }}>{labels.line.confirmDelete}</span>
-                <button className="btn-danger" onClick={handleDelete} disabled={deleteBusy} style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+                <button className="btn-danger" onClick={handleDelete} disabled={deleteBusy}
+                  style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
                   {labels.common.delete}
                 </button>
-                <button className="btn-ghost" onClick={() => setConfirmDelete(false)} style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
+                <button className="btn-ghost" onClick={() => setConfirmDelete(false)}
+                  style={{ fontSize: '0.8rem', padding: '4px 12px' }}>
                   {labels.common.cancel}
                 </button>
               </span>
@@ -91,13 +102,10 @@ export function LineDetail({ lineId, onDeleted }: Props) {
         </div>
         <div className="tap-group">
           {LINE_STATUSES.map((s) => (
-            <button
-              key={s}
-              type="button"
+            <button key={s} type="button"
               className={`tap-btn${l.status === s ? ' tap-btn--active' : ''}`}
               onClick={() => handleSetStatus(s)}
-              disabled={statusBusy || l.status === s}
-            >
+              disabled={statusBusy || l.status === s}>
               {ll.statusOptions[s]}
             </button>
           ))}
@@ -109,8 +117,10 @@ export function LineDetail({ lineId, onDeleted }: Props) {
         <dt>{ll.fields.pointSpacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.pointSpacingM} m</dd>
         <dt>{ll.fields.electrodeSpacingM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.electrodeSpacingM} m</dd>
         <dt>{ll.fields.mode}</dt><dd>{ll.modeOptions[l.mode]}</dd>
-        <dt>{ll.fields.dipoleOrientation}</dt><dd>{ll.dipoleOptions[l.dipoleOrientation]}</dd>
         {l.lengthM != null && (<><dt>{ll.lengthM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{l.lengthM.toFixed(2)} m</dd></>)}
+        {hasDeviceData && maxDepthM > 0 && (
+          <><dt>{ll.depthRangeM}</dt><dd style={{ fontFamily: 'var(--font-mono)' }}>{Math.round(maxDepthM)} m</dd></>
+        )}
       </dl>
 
       {l.vertices.length > 0 && (
@@ -121,67 +131,57 @@ export function LineDetail({ lineId, onDeleted }: Props) {
           <ul style={{ padding: 0, listStyle: 'none' }}>
             {l.vertices.map((v, i) => (
               <li key={i} style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '4px 0' }}>
-                точка {v.atPointIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
+                Електрод {v.electrodeIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
               </li>
             ))}
           </ul>
         </>
       )}
 
+      {/* Device screen images */}
       {deviceScreenItems.length > 0 && (
         <>
           <div className="section-heading">
-            <h2 style={{ margin: 0 }}>{pl.deviceScreens}</h2>
+            <h2 style={{ margin: 0 }}>{labels.profile.deviceScreens}</h2>
           </div>
-          {deviceScreenItems.map((item) => (
-            <div key={item.url} style={{ marginBottom: 'var(--space-3)' }}>
-              <img
-                src={item.url}
-                alt={item.name}
-                style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)' }}
-              />
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 4, textAlign: 'center' }}>
-                {item.name}
-              </div>
-            </div>
-          ))}
+          <BmpAnnotationLayer
+            bmpItems={deviceScreenItems}
+            calibration={l.bmpCalibration}
+            onCalibrate={handleCalibrate}
+            anomalies={anomalies}
+            selection={selection}
+            pointCount={l.pointCount}
+            maxDepthM={maxDepthM || 150}
+            onTap={(partial) => setInitialSel(partial)}
+          />
         </>
       )}
 
-      <div className="section-heading">
-        <h2 style={{ margin: 0 }}>{pl.heading}</h2>
-      </div>
-
-      {l.points.length === 0 ? (
-        <p className="loading-text">{pl.noData}</p>
-      ) : (
+      {/* Anomaly workflow — shown whenever there is device data */}
+      {hasDeviceData ? (
         <>
-          <div className="canvas-wrapper">
-            <ProfileCanvas points={l.points} channelSet={l.channelSetSnapshot} anomalies={anomalies} />
-          </div>
-
           <div className="section-heading">
             <h2 style={{ margin: 0 }}>{al.heading}</h2>
           </div>
 
-          {anomalies.length === 0 ? (
-            <p className="loading-text">{al.noAnomalies}</p>
-          ) : (
-            <ul style={{ padding: 0, listStyle: 'none' }}>
+          {anomalies.length > 0 && (
+            <ul style={{ padding: 0, listStyle: 'none', marginBottom: 'var(--space-3)' }}>
               {anomalies.map((a) => (
                 <li key={a.id} className="anomaly-item">
                   <div>
                     <div className="anomaly-item__type">{a.type}</div>
                     <div className="anomaly-item__meta">
-                      т.{a.fromPoint}–{a.toPoint} · к.{a.fromChannel}–{a.toChannel} · {a.confidence}★
+                      т.{a.fromPoint}–{a.toPoint}
+                      {(a as any).pseudoDepthFromM != null
+                        ? ` · ${Math.round((a as any).pseudoDepthFromM)}–${Math.round((a as any).pseudoDepthToM)} m`
+                        : ` · к.${a.fromChannel}–${a.toChannel}`}
+                      {' · '}{a.confidence}★
                       {a.note && ` — ${a.note}`}
                     </div>
                   </div>
-                  <button
-                    className="btn-danger"
+                  <button className="btn-danger"
                     onClick={() => handleRemoveAnomaly(a.id)}
-                    style={{ minHeight: 36, padding: '0 12px', fontSize: '0.8rem' }}
-                  >
+                    style={{ minHeight: 36, padding: '0 12px', fontSize: '0.8rem' }}>
                     {al.deleteButton}
                   </button>
                 </li>
@@ -191,9 +191,18 @@ export function LineDetail({ lineId, onDeleted }: Props) {
 
           <AnomalyForm
             pointCount={l.pointCount}
-            channelCount={l.channelSetSnapshot.channels.length}
+            channelSet={l.channelSetSnapshot}
             onSubmit={handleAddAnomaly}
+            onSelectionChange={setSelection}
+            initialSelection={initialSel}
           />
+        </>
+      ) : (
+        <>
+          <div className="section-heading">
+            <h2 style={{ margin: 0 }}>{labels.profile.heading}</h2>
+          </div>
+          <p className="loading-text">{labels.profile.noData}</p>
         </>
       )}
     </section>

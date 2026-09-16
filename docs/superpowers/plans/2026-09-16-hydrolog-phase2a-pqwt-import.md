@@ -1008,12 +1008,12 @@ async function seedLine() {
   const v: Vertex = {
     lat: 42.32, lon: 23.78, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex: 1,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex: 1,
   };
   const line = await createLine(sv.id, {
     pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
     mode: 'multi-frequency', dipoleOrientation: 'inline',
-    vertices: [v, { ...v, atPointIndex: 3, lon: 23.7801 }],
+    vertices: [v, { ...v, electrodeIndex: 3, lon: 23.7801 }],
   });
   return { site, sv, line };
 }
@@ -1431,14 +1431,14 @@ async function seedSurveyWithMatchingLine(label = 'L1') {
   const v: Vertex = {
     lat: 42.32, lon: 23.78, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex: 1,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex: 1,
   };
   // Note: createLine auto-generates the label; force to match by creating the exact number of prior lines
   // For test simplicity: create the line and rename via label check below.
   const line = await createLine(sv.id, {
     pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
     mode: 'multi-frequency', dipoleOrientation: 'inline',
-    vertices: [v, { ...v, atPointIndex: 3, lon: 23.7801 }],
+    vertices: [v, { ...v, electrodeIndex: 3, lon: 23.7801 }],
   });
   // Assert the auto-label came out as 'L1' since it's the first line under this survey
   expect(line.label).toBe(label);
@@ -1843,12 +1843,12 @@ describe.skipIf(!HAS_REAL_SAMPLES)('Phase 2a — real-sample end-to-end', () => 
     const v: Vertex = {
       lat: 42.32, lon: 23.78, elevSource: 'none',
       hAccM: 6, hAccMethod: 'median-reported',
-      sampleCount: 20, fixedAt: new Date(), atPointIndex: 1,
+      sampleCount: 20, fixedAt: new Date(), electrodeIndex: 1,
     };
     const line = await createLine(sv.id, {
       pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
-      vertices: [v, { ...v, atPointIndex: 3, lon: 23.7801 }],
+      vertices: [v, { ...v, electrodeIndex: 3, lon: 23.7801 }],
     });
 
     // Load the real sample bytes

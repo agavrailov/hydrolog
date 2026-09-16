@@ -44,6 +44,47 @@ export function polylineLengthM(vertices: LatLon[]): number {
   return total;
 }
 
+// Interpolate points at arbitrary fractions [0..1] along a polyline.
+// fraction 0 = first vertex, fraction 1 = last vertex.
+export function interpolatePointsAtFractions(
+  vertices: LatLon[],
+  fractions: number[],
+): LatLon[] {
+  if (fractions.length === 0) return [];
+  if (vertices.length === 0) return [];
+  if (vertices.length === 1) return Array(fractions.length).fill(vertices[0]);
+
+  const ref = vertices[0];
+  const enu = vertices.map((v) => enuOf(ref.lat, ref.lon, v.lat, v.lon));
+  const segLens: number[] = [];
+  let total = 0;
+  for (let i = 1; i < enu.length; i++) {
+    const de = enu[i].e - enu[i - 1].e;
+    const dn = enu[i].n - enu[i - 1].n;
+    const s = Math.sqrt(de * de + dn * dn);
+    segLens.push(s);
+    total += s;
+  }
+
+  return fractions.map((frac) => {
+    const target = frac * total;
+    let acc = 0;
+    let seg = 0;
+    while (seg < segLens.length && acc + segLens[seg] < target) {
+      acc += segLens[seg];
+      seg++;
+    }
+    if (seg >= segLens.length) {
+      const last = enu[enu.length - 1];
+      return llFromEnu(ref.lat, ref.lon, last.e, last.n);
+    }
+    const t = segLens[seg] === 0 ? 0 : (target - acc) / segLens[seg];
+    const a = enu[seg];
+    const b = enu[seg + 1];
+    return llFromEnu(ref.lat, ref.lon, a.e + t * (b.e - a.e), a.n + t * (b.n - a.n));
+  });
+}
+
 export function interpolatePointsAlongPolyline(
   vertices: LatLon[],
   pointCount: number,

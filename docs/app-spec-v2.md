@@ -133,7 +133,7 @@ Client?
 | `mode` | single / triple / multi-frequency |
 | `channelSetSnapshot` | **copied by value, frozen** — not a reference (§4.9) |
 | `geometry` | **an ordered polyline of surveyed vertices**, not just two endpoints (§5.3) |
-| `vertices[]` | each {lat, lon, elevM?, elevSource, hAccM, hAccMethod, sampleCount, fixedAt, atPointIndex} |
+| `vertices[]` | each {lat, lon, elevM?, elevSource, hAccM, hAccMethod, sampleCount, fixedAt, `electrodeIndex`} — `electrodeIndex` is the physical electrode number on the cable (1-based). For devices with an S-A-S layout the GPS fix is taken at the first and last **service** electrode; for other devices at the first and last active point (electrode = point index). |
 | `azimuthDeg`, `azimuthSource` | derived-from-vertices \| compass \| manual |
 | `lengthM` | derived along the polyline |
 | `point1Anchor` | **required**: a photo taken standing at point 1 looking along the line, with device bearing stamped (§5.4) |
@@ -203,7 +203,16 @@ A 15-second voice note is the fastest possible field input when both hands are h
 - **Soft gate, not a hard block:** above 15 m the app warns clearly and records `hAccM` and an `acceptedDespiteWarning` flag. It does not stand between you and a waiting client. (v1's hard block was correctly identified as the moment the app gets abandoned.)
 
 ### 5.3 Line geometry — polyline, not two endpoints
-Fix a vertex at point 1 and at point N. If the line was walked around an obstacle, add a vertex at the detour with its point index; points interpolate **along the polyline** and `offsetM` becomes true distance walked. v1 interpolated straight between endpoints and flagged only the one overridden point, leaving the other fifteen quietly wrong.
+
+**GPS fix points depend on the device's electrode layout (S-A-S).** Devices have a fixed cable layout: `serviceStart` service electrodes, then `N` active measurement electrodes, then `serviceEnd` service electrodes. The GPS fix is taken at the **first service electrode** (electrode 1, the physical start of the cable) and the **last service electrode** (electrode `total`, the physical end). This is what you count to in the field.
+
+For a GT-150 (2 + 18 + 2 = 22 electrodes): fix at electrode 1 and electrode 22. Active point j (1-based) then sits at fraction `(serviceStart + j − 1) / (total − 1)` along the cable. For GT-150: point 1 at 2/21, point 18 at 19/21.
+
+Device layouts are registered in `src/domain/device-config.ts` (`ELECTRODE_LAYOUT`). Devices with no entry fall back to fixing at point 1 / point N (active endpoints only), with uniform interpolation.
+
+`Vertex.electrodeIndex` stores the physical electrode number (1-based). On the profile canvas, only the active points 1..N are plotted. In the field, you count by electrode number.
+
+If the line was walked around an obstacle, add a vertex at the detour with its electrode index; points interpolate **along the polyline** and `offsetM` becomes true distance walked. v1 interpolated straight between endpoints and flagged only the one overridden point, leaving the other fifteen quietly wrong.
 
 Cross-check on save: `|polylineLength − (pointCount − 1) × pointSpacingM|` > tolerance → warn. **Note the `− 1`**: 17 points at 2 m spacing is 32 m, not 34. The v1 formula would have warned on every correctly measured line; this was confirmed by test.
 

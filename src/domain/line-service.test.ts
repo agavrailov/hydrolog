@@ -32,11 +32,11 @@ async function seedSiteAndSurvey() {
   return { site, survey };
 }
 
-function vertex(atPointIndex: number, lat: number, lon: number): Vertex {
+function vertex(electrodeIndex: number, lat: number, lon: number): Vertex {
   return {
     lat, lon, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex,
   };
 }
 

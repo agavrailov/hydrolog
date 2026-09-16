@@ -1,16 +1,30 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AnomalyForm } from './AnomalyForm';
+import type { ChannelSetSnapshot } from '../domain/types';
 
-const defaults = { pointCount: 17, channelCount: 36 };
+function makeChannelSet(n = 36, maxDepthM = 150): ChannelSetSnapshot {
+  const step = maxDepthM / n;
+  return {
+    name: 'test', deviceModel: 'PQWT-TC300', kind: 'frequency', units: 'mV',
+    depthModel: 'linear-nominal', provenanceNote: 'test',
+    frozenAt: new Date(),
+    channels: Array.from({ length: n }, (_, i) => ({
+      label: `ch${i + 1}`, order: i, pseudoDepthM: (i + 1) * step,
+    })),
+  };
+}
+
+const channelSet = makeChannelSet();
+const defaults = { pointCount: 17, channelSet };
 
 describe('<AnomalyForm />', () => {
-  it('renders from/to point and channel inputs', () => {
+  it('renders from/to point and depth inputs', () => {
     render(<AnomalyForm {...defaults} onSubmit={vi.fn()} />);
     expect(screen.getByLabelText('От точка')).toBeInTheDocument();
     expect(screen.getByLabelText('До точка')).toBeInTheDocument();
-    expect(screen.getByLabelText('От канал')).toBeInTheDocument();
-    expect(screen.getByLabelText('До канал')).toBeInTheDocument();
+    expect(screen.getByLabelText('От дълбочина (m)')).toBeInTheDocument();
+    expect(screen.getByLabelText('До дълбочина (m)')).toBeInTheDocument();
   });
 
   it('renders type select with all AnomalyType options', () => {
@@ -21,8 +35,8 @@ describe('<AnomalyForm />', () => {
 
   it('calls onSubmit with correct values when form is submitted', () => {
     const onSubmit = vi.fn();
-    render(<AnomalyForm {...defaults} onSubmit={onSubmit} />);
-    fireEvent.click(screen.getByRole('button', { name: /Добави/i }));
+    const { container } = render(<AnomalyForm {...defaults} onSubmit={onSubmit} />);
+    fireEvent.submit(container.querySelector('form')!);
     expect(onSubmit).toHaveBeenCalledOnce();
     const arg = onSubmit.mock.calls[0][0];
     expect(arg.fromPoint).toBeGreaterThanOrEqual(1);
@@ -36,8 +50,8 @@ describe('<AnomalyForm />', () => {
 
   it('note is trimmed and omitted when empty', () => {
     const onSubmit = vi.fn();
-    render(<AnomalyForm {...defaults} onSubmit={onSubmit} />);
-    fireEvent.click(screen.getByRole('button', { name: /Добави/i }));
+    const { container } = render(<AnomalyForm {...defaults} onSubmit={onSubmit} />);
+    fireEvent.submit(container.querySelector('form')!);
     expect(onSubmit.mock.calls[0][0].note).toBeUndefined();
   });
 });

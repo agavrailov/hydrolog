@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { enuOf, llFromEnu, polylineLengthM, interpolatePointsAlongPolyline } from './enu';
+import { enuOf, llFromEnu, polylineLengthM, interpolatePointsAlongPolyline, interpolatePointsAtFractions } from './enu';
 
 const REF_LAT = 42.32;
 const REF_LON = 23.78;
@@ -94,5 +94,61 @@ describe('interpolatePointsAlongPolyline (§14 T1, T3)', () => {
     // Midpoint (index 2) should sit exactly at the corner
     expect(pts[2].lat).toBeCloseTo(REF_LAT, 5);
     expect(pts[2].lon).toBeCloseTo(REF_LON + dLonEast, 8);
+  });
+});
+
+describe('interpolatePointsAtFractions', () => {
+  const R = 6378137;
+  const cosLat = Math.cos(REF_LAT * Math.PI / 180);
+
+  function eastLon(metres: number): number {
+    return REF_LON + (metres / (R * cosLat)) * (180 / Math.PI);
+  }
+
+  it('fraction 0 → first vertex; fraction 1 → last vertex', () => {
+    const endLon = eastLon(52.5);
+    const V1 = { lat: REF_LAT, lon: REF_LON };
+    const V2 = { lat: REF_LAT, lon: endLon };
+    const pts = interpolatePointsAtFractions([V1, V2], [0, 1]);
+    expect(pts[0].lat).toBeCloseTo(REF_LAT, 8);
+    expect(pts[0].lon).toBeCloseTo(REF_LON, 8);
+    expect(pts[1].lat).toBeCloseTo(REF_LAT, 8);
+    expect(pts[1].lon).toBeCloseTo(endLon, 8);
+  });
+
+  it('fraction 0.5 → midpoint of a two-vertex straight line', () => {
+    const endLon = eastLon(52.5);
+    const V1 = { lat: REF_LAT, lon: REF_LON };
+    const V2 = { lat: REF_LAT, lon: endLon };
+    const pts = interpolatePointsAtFractions([V1, V2], [0.5]);
+    expect(pts[0].lon).toBeCloseTo((REF_LON + endLon) / 2, 6);
+  });
+
+  it('GT-150 fractions 2/21 and 19/21 land at the correct electrode positions on a 52.5 m cable', () => {
+    // Cable: 21 electrode spacings × 2.5 m = 52.5 m, straight east-west.
+    // Electrode 1 at REF_LON (fraction 0), electrode 22 at endLon (fraction 1).
+    // Point 1 (electrode 3) at fraction 2/21 → 5 m from start.
+    // Point 18 (electrode 20) at fraction 19/21 → 47.5 m from start.
+    const endLon = eastLon(52.5);
+    const V1 = { lat: REF_LAT, lon: REF_LON };
+    const V2 = { lat: REF_LAT, lon: endLon };
+    const pts = interpolatePointsAtFractions([V1, V2], [2 / 21, 19 / 21]);
+
+    const expectedP1Lon  = eastLon(5.0);   // 2 spacings × 2.5 m
+    const expectedP18Lon = eastLon(47.5);  // 19 spacings × 2.5 m
+    expect(pts[0].lon).toBeCloseTo(expectedP1Lon, 4);
+    expect(pts[1].lon).toBeCloseTo(expectedP18Lon, 4);
+
+    // Neither point is at the cable endpoints (service electrodes).
+    expect(pts[0].lon).not.toBeCloseTo(REF_LON, 4);
+    expect(pts[1].lon).not.toBeCloseTo(endLon, 4);
+  });
+
+  it('returns empty array for empty fractions', () => {
+    expect(interpolatePointsAtFractions([{ lat: REF_LAT, lon: REF_LON }], [])).toEqual([]);
+  });
+
+  it('returns empty array for empty vertices', () => {
+    expect(interpolatePointsAtFractions([], [0.5])).toEqual([]);
   });
 });

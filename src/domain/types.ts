@@ -75,7 +75,7 @@ export interface Vertex extends LatLon {
   hAccMethod: 'median-reported' | 'first-fix' | 'manual';
   sampleCount: number;
   fixedAt: Date;
-  atPointIndex: number;          // which point on the line this vertex marks
+  electrodeIndex: number;        // physical electrode number on the cable (1-based); for devices with S-A-S layout the first and last service electrodes are fixed
 }
 
 // §4.7 — repeats are first-class
@@ -146,6 +146,17 @@ export interface Line extends AuditFields {
   points: Point[];
   noiseZones: NoiseZone[];
   status: 'draft' | 'data-pending' | 'complete' | 'archived';
+  bmpCalibration?: BmpCalibration;
+}
+
+// Calibration of the data-field area within a device-screen BMP.
+// Stored as fractions (0–1) of the image's natural pixel dimensions so it
+// remains valid at any display scale.
+export interface BmpCalibration {
+  dataX1: number; // left edge of data field
+  dataY1: number; // top edge
+  dataX2: number; // right edge
+  dataY2: number; // bottom edge
 }
 
 // §4.10

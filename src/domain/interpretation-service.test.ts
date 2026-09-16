@@ -8,11 +8,11 @@ import { createLine } from './line-service';
 import { getOrCreateInterpretation, addAnomaly, removeAnomaly } from './interpretation-service';
 import type { Vertex } from './types';
 
-function v(atPointIndex: number): Vertex {
+function v(electrodeIndex: number): Vertex {
   return {
     lat: 42.32, lon: 23.78, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 10, fixedAt: new Date(), atPointIndex,
+    sampleCount: 10, fixedAt: new Date(), electrodeIndex,
   };
 }
 

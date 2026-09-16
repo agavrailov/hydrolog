@@ -472,7 +472,7 @@ git commit -m "feat(hardware): geolocation adapter with test-swappable interface
 - Produces:
   - `interface SamplingOptions { targetSamples: number; discardFirst: number; timeoutMs: number; onProgress?: (n: number, latestAccuracyM: number) => void; }`
   - `interface SamplingResult { vertex: Vertex; sampleCount: number; medianAccuracyM: number; acceptedDespiteWarning: boolean; }`
-  - `async function sampleVertex(atPointIndex: number, opts: SamplingOptions): Promise<SamplingResult>` — orchestrates the whole capture:
+  - `async function sampleVertex(electrodeIndex: number, opts: SamplingOptions): Promise<SamplingResult>` — orchestrates the whole capture:
     1. Acquire wake lock.
     2. `watchPosition` with `enableHighAccuracy: true, maximumAge: 0`.
     3. Discard the first `opts.discardFirst` fixes.
@@ -532,7 +532,7 @@ describe('sampleVertex', () => {
     expect(result.vertex.hAccM).toBe(8);
     expect(result.vertex.hAccMethod).toBe('median-reported');
     expect(result.acceptedDespiteWarning).toBe(false);
-    expect(result.vertex.atPointIndex).toBe(1);
+    expect(result.vertex.electrodeIndex).toBe(1);
   });
 
   it('sets acceptedDespiteWarning when median accuracy > 15 m', async () => {
@@ -636,7 +636,7 @@ function median(values: number[]): number {
 }
 
 export async function sampleVertex(
-  atPointIndex: number,
+  electrodeIndex: number,
   opts: SamplingOptions,
 ): Promise<SamplingResult> {
   const release = await holdWakeLock();
@@ -694,7 +694,7 @@ export async function sampleVertex(
         hAccMethod: 'median-reported',
         sampleCount: n,
         fixedAt: new Date(),
-        atPointIndex,
+        electrodeIndex,
       };
       resolve({
         vertex,
@@ -1088,11 +1088,11 @@ async function seedSiteAndSurvey() {
   return { site, survey };
 }
 
-function vertex(atPointIndex: number, lat: number, lon: number): Vertex {
+function vertex(electrodeIndex: number, lat: number, lon: number): Vertex {
   return {
     lat, lon, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex,
   };
 }
 
@@ -1634,12 +1634,12 @@ async function seedLine() {
   const v: Vertex = {
     lat: 42.32, lon: 23.78, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex: 1,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex: 1,
   };
   const line = await createLine(sv.id, {
     pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
     mode: 'multi-frequency', dipoleOrientation: 'inline',
-    vertices: [v, { ...v, atPointIndex: 17, lon: 23.7804 }],
+    vertices: [v, { ...v, electrodeIndex: 17, lon: 23.7804 }],
   });
   return { site, sv, line };
 }
@@ -1898,7 +1898,7 @@ Behaviour (five stages, each rendered as one section; stages advance on user act
 1. **Parameters** — `pointCount`, `pointSpacingM`, `electrodeSpacingM`, `mode` (select), `dipoleOrientation` (select). Continue button enables when values are entered and the spacing invariant holds.
 2. **Point 1 GPS** — "Start GPS" button. While sampling, renders live progress ("проби N/M", accuracy). Save button appears when target reached; if the resulting median accuracy > 15 m, shows the warning (allow the user to accept anyway per §5.2 soft gate).
 3. **Anchor photo** — `<input type="file" accept="image/*" capture="environment">`. On file selected, immediately calls `captureAnchorPhoto` with the just-fixed point-1 GPS coordinates. Shows a thumbnail preview and a "retake" button.
-4. **Point N GPS** — same UI as step 2, but for `atPointIndex = pointCount`.
+4. **Point N GPS** — same UI as step 2, but for `electrodeIndex = pointCount`.
 5. **Save** — button that calls `createLine({ vertices: [v1, vN], point1AnchorMediaId: media.id, ... })`, then `onSaved(line.id)`.
 
 Errors from any step surface in a `<div role="alert">` at the top of the current stage.
@@ -1996,8 +1996,8 @@ describe('<LineCaptureScreen /> — full field flow', () => {
     const row = await getDb().lines.get(lineId);
     expect(row?.json.label).toBe('L1');
     expect(row?.json.vertices).toHaveLength(2);
-    expect(row?.json.vertices[0].atPointIndex).toBe(1);
-    expect(row?.json.vertices[1].atPointIndex).toBe(17);
+    expect(row?.json.vertices[0].electrodeIndex).toBe(1);
+    expect(row?.json.vertices[1].electrodeIndex).toBe(17);
     expect(row?.json.point1AnchorMediaId).toBeDefined();
   });
 
@@ -2122,18 +2122,18 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
   }
 
   // ─── Stage helper: sample a vertex ────────────────
-  const startSampling = async (atPointIndex: number) => {
+  const startSampling = async (electrodeIndex: number) => {
     setError(null);
     setSampling(true);
     setSamplingProgress({ n: 0, acc: 0 });
     try {
-      const result = await sampleVertex(atPointIndex, {
+      const result = await sampleVertex(electrodeIndex, {
         targetSamples: 5,
         discardFirst: 3,
         timeoutMs: 60_000,
         onProgress: (n, acc) => setSamplingProgress({ n, acc }),
       });
-      if (atPointIndex === 1) setV1(result.vertex);
+      if (electrodeIndex === 1) setV1(result.vertex);
       else setVN(result.vertex);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -2144,7 +2144,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
 
   // ─── Stage 2: point 1 ──────────────────────────────
   if (stage === 'p1' || stage === 'pn') {
-    const atPointIndex = stage === 'p1' ? 1 : params.pointCount;
+    const electrodeIndex = stage === 'p1' ? 1 : params.pointCount;
     const currentVertex = stage === 'p1' ? v1 : vN;
     const stepTitle = stage === 'p1' ? l.step2Title : l.step4Title;
     return (
@@ -2152,7 +2152,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
         <h2>{stepTitle}</h2>
         {error && <div role="alert" style={{ color: 'crimson' }}>{error}</div>}
         {!currentVertex && (
-          <button onClick={() => startSampling(atPointIndex)} disabled={sampling}>
+          <button onClick={() => startSampling(electrodeIndex)} disabled={sampling}>
             {l.gpsStart}
           </button>
         )}
@@ -2329,11 +2329,11 @@ beforeEach(async () => {
   setRoot(createMockRoot());
 });
 
-function v(atPointIndex: number, lat: number, lon: number): Vertex {
+function v(electrodeIndex: number, lat: number, lon: number): Vertex {
   return {
     lat, lon, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex,
   };
 }
 
@@ -2409,7 +2409,7 @@ export function LineDetail({ lineId, onBack }: Props) {
       <ul>
         {l.vertices.map((v, i) => (
           <li key={i}>
-            точка {v.atPointIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
+            точка {v.electrodeIndex} · {v.lat.toFixed(6)}, {v.lon.toFixed(6)} · hAccM {v.hAccM.toFixed(1)} m · {v.sampleCount} проби
           </li>
         ))}
       </ul>

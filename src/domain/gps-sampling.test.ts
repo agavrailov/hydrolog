@@ -47,7 +47,7 @@ describe('sampleVertex', () => {
     expect(result.vertex.hAccM).toBe(8);
     expect(result.vertex.hAccMethod).toBe('median-reported');
     expect(result.acceptedDespiteWarning).toBe(false);
-    expect(result.vertex.atPointIndex).toBe(1);
+    expect(result.vertex.electrodeIndex).toBe(1);
   });
 
   it('sets acceptedDespiteWarning when median accuracy > 15 m', async () => {

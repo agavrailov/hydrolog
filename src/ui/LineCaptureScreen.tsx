@@ -1,10 +1,17 @@
-import { useState, type ChangeEvent } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { labels } from './labels';
 import type { Vertex, Line } from '../domain/types';
 import { sampleVertex } from '../domain/gps-sampling';
 import { createLine, type LineCreateInput, updateLine } from '../domain/line-service';
 import { captureAnchorPhoto } from '../domain/anchor-photo';
 import { useLastUsed } from './util/useLastUsed';
+import { useSurvey } from '../cache/hooks';
+import { ELECTRODE_LAYOUT, totalElectrodes } from '../domain/device-config';
+
+// Fixed point-spacing (m) per device model. Null = user-configurable.
+const FIXED_POINT_SPACING: Record<string, number | null> = {
+  'GT-150': 2.5,
+};
 
 type Stage = 'params' | 'p1' | 'anchor' | 'pn' | 'save';
 
@@ -37,45 +44,71 @@ interface StepperProps {
   min: number;
   max: number;
   step?: number;
+  locked?: boolean;
 }
 
-function Stepper({ label, value, onChange, min, max, step = 1 }: StepperProps) {
+function Stepper({ label, value, onChange, min, max, step = 1, locked = false }: StepperProps) {
   return (
     <div className="field">
       <span className="field__label">{label}</span>
-      <div className="stepper">
-        <button
-          type="button"
-          className="stepper__btn"
-          onClick={() => onChange(Math.max(min, parseFloat((value - step).toFixed(4))))}
-          disabled={value <= min}
-        >−</button>
-        <input
-          aria-label={label}
-          type="number"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
-        <button
-          type="button"
-          className="stepper__btn"
-          onClick={() => onChange(Math.min(max, parseFloat((value + step).toFixed(4))))}
-          disabled={value >= max}
-        >+</button>
-      </div>
+      {locked ? (
+        <div className="stepper stepper--locked">
+          <span style={{ flex: 1, textAlign: 'center', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+            {value} <small>(фиксирано за модела)</small>
+          </span>
+        </div>
+      ) : (
+        <div className="stepper">
+          <button
+            type="button"
+            className="stepper__btn"
+            onClick={() => onChange(Math.max(min, parseFloat((value - step).toFixed(4))))}
+            disabled={value <= min}
+          >−</button>
+          <input
+            aria-label={label}
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+          />
+          <button
+            type="button"
+            className="stepper__btn"
+            onClick={() => onChange(Math.min(max, parseFloat((value + step).toFixed(4))))}
+            disabled={value >= max}
+          >+</button>
+        </div>
+      )}
     </div>
   );
 }
 
 export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
   const [lastParams, setLastParams] = useLastUsed<Params>('lineParams', DEFAULT_PARAMS);
+  const survey = useSurvey(surveyId);
 
   const [stage, setStage] = useState<Stage>('params');
   const [params, setParams] = useState<Params>({ ...DEFAULT_PARAMS, ...lastParams });
   const [error, setError] = useState<string | null>(null);
+
+  const fixedSpacing = survey ? (FIXED_POINT_SPACING[survey.json.deviceModel] ?? null) : null;
+  const electrodeLayout = survey ? (ELECTRODE_LAYOUT[survey.json.deviceModel] ?? null) : null;
+  const endElectrodeIndex = electrodeLayout ? totalElectrodes(electrodeLayout) : params.pointCount;
+
+  useEffect(() => {
+    if (fixedSpacing !== null) {
+      setParams((p) => ({ ...p, pointSpacingM: fixedSpacing }));
+    }
+  }, [fixedSpacing]);
+
+  useEffect(() => {
+    if (electrodeLayout !== null) {
+      setParams((p) => ({ ...p, pointCount: electrodeLayout.active }));
+    }
+  }, [electrodeLayout]);
   const [v1, setV1] = useState<Vertex | null>(null);
   const [vN, setVN] = useState<Vertex | null>(null);
   const [pendingAnchor, setPendingAnchor] = useState<File | null>(null);
@@ -89,18 +122,18 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
   const setP = <K extends keyof Params>(k: K, v: Params[K]) =>
     setParams((p) => ({ ...p, [k]: v }));
 
-  const startSampling = async (atPointIndex: number) => {
+  const startSampling = async (electrodeIndex: number) => {
     setError(null);
     setSampling(true);
     setSamplingProgress({ n: 0, acc: 0 });
     try {
-      const result = await sampleVertex(atPointIndex, {
+      const result = await sampleVertex(electrodeIndex, {
         targetSamples: 5,
         discardFirst: 3,
         timeoutMs: 60_000,
         onProgress: (n, acc) => setSamplingProgress({ n, acc }),
       });
-      if (atPointIndex === 1) setV1(result.vertex);
+      if (electrodeIndex === 1) setV1(result.vertex);
       else setVN(result.vertex);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -136,6 +169,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
           onChange={(v) => setP('pointCount', v)}
           min={5}
           max={999}
+          locked={electrodeLayout !== null}
         />
 
         <Stepper
@@ -145,6 +179,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
           min={0.5}
           max={50}
           step={0.5}
+          locked={fixedSpacing !== null}
         />
 
         <Stepper
@@ -198,9 +233,12 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
 
   // ─── Stage 2 & 4: GPS point 1 or N ────────────────
   if (stage === 'p1' || stage === 'pn') {
-    const atPointIndex = stage === 'p1' ? 1 : params.pointCount;
+    const electrodeIndex = stage === 'p1' ? 1 : endElectrodeIndex;
+    const isService = electrodeLayout != null;
+    const stepTitle = stage === 'p1'
+      ? `Стъпка 2: GPS — Електрод 1${isService ? ' (служебен)' : ''}`
+      : `Стъпка 4: GPS — Електрод ${endElectrodeIndex}${isService ? ' (служебен)' : ''}`;
     const currentVertex = stage === 'p1' ? v1 : vN;
-    const stepTitle = stage === 'p1' ? l.step2Title : l.step4Title;
 
     return (
       <section style={{ padding: 'var(--space-4)', maxWidth: 480 }}>
@@ -208,7 +246,7 @@ export function LineCaptureScreen({ surveyId, onSaved, onCancel }: Props) {
         {error && <div role="alert" className="alert alert--error">{error}</div>}
 
         {!currentVertex && (
-          <button type="button" className="btn-primary btn-full" onClick={() => startSampling(atPointIndex)} disabled={sampling}>
+          <button type="button" className="btn-primary btn-full" onClick={() => startSampling(electrodeIndex)} disabled={sampling}>
             {l.gpsStart}
           </button>
         )}

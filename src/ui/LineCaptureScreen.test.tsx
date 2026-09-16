@@ -114,8 +114,8 @@ describe('<LineCaptureScreen /> — full field flow', () => {
     const row = await getDb().lines.get(lineId);
     expect(row?.json.label).toBe('L1');
     expect(row?.json.vertices).toHaveLength(2);
-    expect(row?.json.vertices[0].atPointIndex).toBe(1);
-    expect(row?.json.vertices[1].atPointIndex).toBe(17);
+    expect(row?.json.vertices[0].electrodeIndex).toBe(1);
+    expect(row?.json.vertices[1].electrodeIndex).toBe(17);
     expect(row?.json.point1AnchorMediaId).toBeDefined();
   });
 

@@ -129,7 +129,7 @@ describe('domain types', () => {
       hAccMethod: 'median-reported',
       sampleCount: 42,
       fixedAt: new Date(),
-      atPointIndex: 1,
+      electrodeIndex: 1,
       elevSource: 'none',
     };
     void v;

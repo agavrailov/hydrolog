@@ -99,7 +99,13 @@ function LineNewRoute({ params }: { params: { id: string; svId: string } }) {
 }
 
 function LineDetailRoute({ params }: { params: { id: string; svId: string; lnId: string } }) {
-  return <LineDetail lineId={params.lnId} />;
+  const [, setLocation] = useLocation();
+  return (
+    <LineDetail
+      lineId={params.lnId}
+      onDeleted={() => setLocation(`/sites/${params.id}/surveys/${params.svId}`)}
+    />
+  );
 }
 
 function HomeRoute() {

@@ -54,12 +54,12 @@ describe.skipIf(!HAS_REAL_SAMPLES)('Phase 2a — real-sample end-to-end', () => 
     const v: Vertex = {
       lat: 42.32, lon: 23.78, elevSource: 'none',
       hAccM: 6, hAccMethod: 'median-reported',
-      sampleCount: 20, fixedAt: new Date(), atPointIndex: 1,
+      sampleCount: 20, fixedAt: new Date(), electrodeIndex: 1,
     };
     const line = await createLine(sv.id, {
       pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
       mode: 'multi-frequency', dipoleOrientation: 'inline',
-      vertices: [v, { ...v, atPointIndex: 3, lon: 23.7801 }],
+      vertices: [v, { ...v, electrodeIndex: 3, lon: 23.7801 }],
     });
 
     // Load the real sample bytes

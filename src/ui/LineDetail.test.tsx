@@ -17,11 +17,11 @@ beforeEach(async () => {
   setRoot(createMockRoot());
 });
 
-function v(atPointIndex: number, lat: number, lon: number): Vertex {
+function v(electrodeIndex: number, lat: number, lon: number): Vertex {
   return {
     lat, lon, elevSource: 'none',
     hAccM: 6, hAccMethod: 'median-reported',
-    sampleCount: 20, fixedAt: new Date(), atPointIndex,
+    sampleCount: 20, fixedAt: new Date(), electrodeIndex,
   };
 }
 
@@ -49,8 +49,8 @@ describe('<LineDetail />', () => {
     const line = await seedLine();
     render(<LineDetail lineId={line.id} />);
     expect(await screen.findByText('L1')).toBeInTheDocument();
-    expect(screen.getByText(/точка 1 /)).toBeInTheDocument();
-    expect(screen.getByText(/точка 17 /)).toBeInTheDocument();
+    expect(screen.getByText(/Електрод 1 /)).toBeInTheDocument();
+    expect(screen.getByText(/Електрод 17 /)).toBeInTheDocument();
   });
 
   it('shows no-data hint when points is empty', async () => {
@@ -60,7 +60,7 @@ describe('<LineDetail />', () => {
     expect(await screen.findByText(/Все още няма данни от устройство/)).toBeInTheDocument();
   });
 
-  it('shows canvas when points are present', async () => {
+  it('shows anomaly section when points are present', async () => {
     const line = await seedLine();
     const now = new Date();
     const onePoint: Point = {
@@ -80,8 +80,8 @@ describe('<LineDetail />', () => {
     });
 
     render(<LineDetail lineId={line.id} />);
-    await screen.findByText('Профил от устройство');
-    expect(await screen.findByLabelText('Матрица от измервания — цветова скала mV')).toBeInTheDocument();
+    expect(await screen.findByText('Аномалии')).toBeInTheDocument();
+    expect(screen.queryByText(/Все още няма данни от устройство/)).not.toBeInTheDocument();
   });
 
   it('shows anomaly in list and delete button after addAnomaly', async () => {

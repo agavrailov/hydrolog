@@ -26,7 +26,7 @@ function median(values: number[]): number {
 }
 
 export async function sampleVertex(
-  atPointIndex: number,
+  electrodeIndex: number,
   opts: SamplingOptions,
 ): Promise<SamplingResult> {
   const release = await holdWakeLock();
@@ -84,7 +84,7 @@ export async function sampleVertex(
         hAccMethod: 'median-reported',
         sampleCount: n,
         fixedAt: new Date(),
-        atPointIndex,
+        electrodeIndex,
       };
       resolve({
         vertex,

@@ -608,7 +608,7 @@ describe('domain types', () => {
       hAccMethod: 'median-reported',
       sampleCount: 42,
       fixedAt: new Date(),
-      atPointIndex: 1,
+      electrodeIndex: 1,
       elevSource: 'none',
     };
     void v;
@@ -708,7 +708,7 @@ export interface Vertex extends LatLon {
   hAccMethod: 'median-reported' | 'first-fix' | 'manual';
   sampleCount: number;
   fixedAt: Date;
-  atPointIndex: number;          // which point on the line this vertex marks
+  electrodeIndex: number;        // physical electrode number on the cable (1-based); for S-A-S devices the first/last service electrodes are fixed
 }
 
 // §4.7 — repeats are first-class

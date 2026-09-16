@@ -5,9 +5,9 @@ import { setRoot, clearRoot } from '../storage/fs';
 import { resetDb } from '../cache/db';
 import { createSite } from '../domain/site-service';
 import { createSurvey } from '../domain/survey-service';
-import { createLine } from '../domain/line-service';
+import { createLine, attachDeviceData } from '../domain/line-service';
 import { LineDetail } from './LineDetail';
-import type { Vertex } from '../domain/types';
+import type { Vertex, Point } from '../domain/types';
 
 beforeEach(async () => {
   await resetDb();
@@ -23,28 +23,62 @@ function v(atPointIndex: number, lat: number, lon: number): Vertex {
   };
 }
 
+async function seedLine() {
+  const site = await createSite({
+    name: 'X', settlement: 'x', municipality: 'x', region: 'Софийска',
+    centroid: { lat: 0, lon: 0 }, accessNotes: '', landUse: '',
+    status: 'surveyed', tags: [],
+  });
+  const sv = await createSurvey(site.id, {
+    startedAt: new Date(), timezone: 'Europe/Sofia', operator: 'x',
+    deviceModel: 'PQWT-TC300', deviceSerial: 'x',
+    precipLast48h: 'none', qualityFlag: 'good',
+  });
+  const line = await createLine(sv.id, {
+    pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
+    mode: 'multi-frequency', dipoleOrientation: 'inline',
+    vertices: [v(1, 42.32, 23.78), v(17, 42.32, 23.7804)],
+  });
+  return line;
+}
+
 describe('<LineDetail />', () => {
   it('renders label, spacing, mode, vertices', async () => {
-    const site = await createSite({
-      name: 'X', settlement: 'x', municipality: 'x', region: 'Софийска',
-      centroid: { lat: 0, lon: 0 }, accessNotes: '', landUse: '',
-      status: 'surveyed', tags: [],
-    });
-    const sv = await createSurvey(site.id, {
-      startedAt: new Date(), timezone: 'Europe/Sofia', operator: 'x',
-      deviceModel: 'PQWT-TC300', deviceSerial: 'x',
-      precipLast48h: 'none', qualityFlag: 'good',
-    });
-    const line = await createLine(sv.id, {
-      pointCount: 17, pointSpacingM: 2, electrodeSpacingM: 5,
-      mode: 'multi-frequency', dipoleOrientation: 'inline',
-      vertices: [v(1, 42.32, 23.78), v(17, 42.32, 23.7804)],
+    const line = await seedLine();
+    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    expect(await screen.findByText('L1')).toBeInTheDocument();
+    expect(screen.getByText(/точка 1 /)).toBeInTheDocument();
+    expect(screen.getByText(/точка 17 /)).toBeInTheDocument();
+  });
+
+  it('shows no-data hint when points is empty', async () => {
+    const line = await seedLine();
+    render(<LineDetail lineId={line.id} onBack={() => {}} />);
+    expect(await screen.findByText('Профил от устройство')).toBeInTheDocument();
+    expect(await screen.findByText(/Все още няма данни от устройство/)).toBeInTheDocument();
+  });
+
+  it('shows canvas when points are present', async () => {
+    const line = await seedLine();
+    const now = new Date();
+    const onePoint: Point = {
+      index: 1, offsetM: 0, lat: 42.32, lon: 23.78,
+      elevSource: 'none', coordSource: 'interpolated',
+      readings: [{ pass: 1, recordedAt: now, values: [0.1], groundingOk: true, electrodeTreatment: 'none' }],
+      flags: [],
+    };
+    await attachDeviceData(line.id, {
+      channelSetSnapshot: line.channelSetSnapshot,
+      pointCount: 1,
+      deviceStartPointIndex: 80,
+      deviceLineNumber: '1',
+      mode: 'multi-frequency',
+      status: 'complete',
+      points: [onePoint],
     });
 
     render(<LineDetail lineId={line.id} onBack={() => {}} />);
-    expect(await screen.findByText('L1')).toBeInTheDocument();
-    // Vertices show both point indices
-    expect(screen.getByText(/точка 1 /)).toBeInTheDocument();
-    expect(screen.getByText(/точка 17 /)).toBeInTheDocument();
+    await screen.findByText('Профил от устройство');
+    expect(await screen.findByLabelText('Матрица от измервания — цветова скала mV')).toBeInTheDocument();
   });
 });

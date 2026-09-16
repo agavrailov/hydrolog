@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import type { Point, ChannelSetSnapshot } from '../domain/types';
+import type { Point, ChannelSetSnapshot, Anomaly } from '../domain/types';
 import { labels } from './labels';
 
 export function valueToColor(v: number | null, min: number, max: number): string {
@@ -13,11 +13,12 @@ export function valueToColor(v: number | null, min: number, max: number): string
 interface ProfileCanvasProps {
   points: Point[];
   channelSet: ChannelSetSnapshot;
+  anomalies?: Anomaly[];
   cellW?: number;
   cellH?: number;
 }
 
-export function ProfileCanvas({ points, channelSet, cellW = 20, cellH = 8 }: ProfileCanvasProps) {
+export function ProfileCanvas({ points, channelSet, anomalies, cellW = 20, cellH = 8 }: ProfileCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -55,7 +56,23 @@ export function ProfileCanvas({ points, channelSet, cellW = 20, cellH = 8 }: Pro
         ctx.fillRect(p * cellW, c * cellH, cellW, cellH);
       }
     }
-  }, [points, channelSet, cellW, cellH]);
+
+    if (anomalies && anomalies.length > 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 220, 0, 0.25)';
+      ctx.strokeStyle = 'rgba(120, 80, 0, 0.85)';
+      ctx.lineWidth = 1;
+      for (const a of anomalies) {
+        const x = (a.fromPoint - 1) * cellW;
+        const y = (a.fromChannel - 1) * cellH;
+        const w = (a.toPoint - a.fromPoint + 1) * cellW;
+        const h = (a.toChannel - a.fromChannel + 1) * cellH;
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeRect(x, y, w, h);
+      }
+      ctx.restore();
+    }
+  }, [points, channelSet, anomalies, cellW, cellH]);
 
   return (
     <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { ProfileCanvas, valueToColor } from './ProfileCanvas';
-import type { ChannelSetSnapshot, Point } from '../domain/types';
+import type { ChannelSetSnapshot, Point, Anomaly } from '../domain/types';
 
 const TWO_CH: ChannelSetSnapshot = {
   name: 'test', deviceModel: 'PQWT-150M', kind: 'frequency',
@@ -72,5 +72,22 @@ describe('ProfileCanvas', () => {
     );
     const canvas = container.querySelector('canvas');
     expect(canvas?.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  it('renders without crashing when anomalies prop provided', () => {
+    const anomaly: Anomaly = {
+      id: 'a1', lineId: 'l1',
+      fromPoint: 1, toPoint: 1, fromChannel: 1, toChannel: 1,
+      pseudoDepthFromM: 0, pseudoDepthToM: 75,
+      type: 'fracture-signature', confidence: 3,
+    };
+    const { container } = render(
+      <ProfileCanvas
+        points={[makePoint(1, [0.1, 0.2])]}
+        channelSet={TWO_CH}
+        anomalies={[anomaly]}
+      />
+    );
+    expect(container.querySelector('canvas')).not.toBeNull();
   });
 });

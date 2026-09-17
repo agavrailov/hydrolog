@@ -42,7 +42,7 @@
   /* ── Touch ── */
   --touch-min: 48px;
   --input-h:   52px;
-  --header-h:  56px;
+  --header-h:  40px;
 
   /* ── Typography ── */
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;

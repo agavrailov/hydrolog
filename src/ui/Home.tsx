@@ -5,15 +5,24 @@ import {
 } from '../storage/fs';
 import { scanRoot } from '../storage/scanner';
 import { rebuildCache } from '../cache/rebuild';
-import { hoursSinceLastSync } from '../storage/sync';
+import { hoursSinceLastSync, writeSyncProbe } from '../storage/sync';
 import { Router } from './Router';
-import { SyncIndicator } from './SyncIndicator';
+import { AppDrawer } from './AppDrawer';
+
+const HamburgerIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
+    <rect y="2" width="18" height="2" rx="1"/>
+    <rect y="8" width="18" height="2" rx="1"/>
+    <rect y="14" width="18" height="2" rx="1"/>
+  </svg>
+);
 
 export function Home() {
   const [ready, setReady] = useState(false);
   const [hours, setHours] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const loadRoot = useCallback(async (root: FileSystemDirectoryHandle) => {
     setLoading(true);
@@ -23,7 +32,9 @@ export function Home() {
       setRoot(root);
       const scan = await scanRoot(root);
       await rebuildCache(scan);
-      setHours(await hoursSinceLastSync(root, new Date()));
+      const now = new Date();
+      await writeSyncProbe(root, now);
+      setHours(await hoursSinceLastSync(root, now));
       setReady(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -50,8 +61,11 @@ export function Home() {
     return (
       <div className="app-shell">
         <header className="app-header">
-          <span className="app-header__title">HydroLog</span>
+          <button className="btn-ghost" onClick={() => setDrawerOpen(true)} aria-label="Меню" style={{ padding: '4px 6px' }}>
+            <HamburgerIcon />
+          </button>
         </header>
+        <AppDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hoursSinceSync={hours} onChangeFolder={() => {}} />
         <main className="app-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-5)' }}>
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>HydroLog</h1>
@@ -81,22 +95,19 @@ export function Home() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <span className="app-header__title">HydroLog</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-          <SyncIndicator hoursSinceSync={hours} />
-          <button
-            className="btn-ghost"
-            onClick={onChangeFolder}
-            style={{ fontSize: '0.8rem', padding: '2px 8px' }}
-            title="Смяна на работна папка"
-          >
-            📂 Смяна
-          </button>
-        </div>
+        <button className="btn-ghost" onClick={() => setDrawerOpen(true)} aria-label="Меню" style={{ padding: '4px 6px' }}>
+          <HamburgerIcon />
+        </button>
       </header>
       <main className="app-content">
         <Router />
       </main>
+      <AppDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        hoursSinceSync={hours}
+        onChangeFolder={onChangeFolder}
+      />
     </div>
   );
 }

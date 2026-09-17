@@ -6,6 +6,7 @@ import {
 import { scanRoot } from '../storage/scanner';
 import { rebuildCache } from '../cache/rebuild';
 import { hoursSinceLastSync, writeSyncProbe } from '../storage/sync';
+import { useLocation } from 'wouter';
 import { Router } from './Router';
 import { AppDrawer } from './AppDrawer';
 
@@ -23,6 +24,7 @@ export function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const loadRoot = useCallback(async (root: FileSystemDirectoryHandle) => {
     setLoading(true);
@@ -61,11 +63,12 @@ export function Home() {
     return (
       <div className="app-shell">
         <header className="app-header">
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-primary)' }}>HydroLog</span>
           <button className="btn-ghost" onClick={() => setDrawerOpen(true)} aria-label="Меню" style={{ padding: '4px 6px' }}>
             <HamburgerIcon />
           </button>
         </header>
-        <AppDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hoursSinceSync={hours} onChangeFolder={() => {}} />
+        <AppDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} hoursSinceSync={hours} onChangeFolder={() => {}} onNavigateHome={() => setLocation('/')} />
         <main className="app-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-5)' }}>
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>HydroLog</h1>
@@ -95,6 +98,12 @@ export function Home() {
   return (
     <div className="app-shell">
       <header className="app-header">
+        <button
+          onClick={() => setLocation('/')}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-mono)', fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-primary)' }}
+        >
+          HydroLog
+        </button>
         <button className="btn-ghost" onClick={() => setDrawerOpen(true)} aria-label="Меню" style={{ padding: '4px 6px' }}>
           <HamburgerIcon />
         </button>
@@ -107,6 +116,7 @@ export function Home() {
         onClose={() => setDrawerOpen(false)}
         hoursSinceSync={hours}
         onChangeFolder={onChangeFolder}
+        onNavigateHome={() => setLocation('/')}
       />
     </div>
   );

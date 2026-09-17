@@ -5,9 +5,10 @@ interface Props {
   onClose: () => void;
   hoursSinceSync: number | null;
   onChangeFolder: () => void;
+  onNavigateHome: () => void;
 }
 
-export function AppDrawer({ open, onClose, hoursSinceSync, onChangeFolder }: Props) {
+export function AppDrawer({ open, onClose, hoursSinceSync, onChangeFolder, onNavigateHome }: Props) {
   return (
     <>
       <div
@@ -37,9 +38,12 @@ export function AppDrawer({ open, onClose, hoursSinceSync, onChangeFolder }: Pro
       }}>
         {/* Header row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-4)' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1rem', color: 'var(--color-primary)', fontWeight: 700 }}>
+          <button
+            onClick={() => { onNavigateHome(); onClose(); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font-mono)', fontSize: '1rem', color: 'var(--color-primary)', fontWeight: 700 }}
+          >
             HydroLog
-          </span>
+          </button>
           <button
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', lineHeight: 1, padding: 4 }}

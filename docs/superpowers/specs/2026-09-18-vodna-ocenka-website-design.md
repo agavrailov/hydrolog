@@ -16,13 +16,14 @@
 | Компонент | Технология |
 |---|---|
 | Framework | Astro 5 |
-| Хостинг | Netlify (безплатен tier) |
-| Форми | Netlify Forms |
+| Хостинг | GitHub Pages (безплатен, познат от HydroLog) |
+| CI/CD | GitHub Actions (build → deploy към gh-pages branch) |
+| Форми | Formspree (безплатен tier — 50 заявки/месец) |
 | Резервации | Google Calendar Appointment Scheduling (embed) |
 | Блог | Astro Content Collections (Markdown) |
 | Стилове | CSS custom properties + Astro scoped styles |
 | Изображения | Astro Image (автоматична оптимизация → WebP, responsive) |
-| Домейн | TBD (свързва се към Netlify) |
+| Домейн | TBD (custom domain → CNAME + A records към GitHub Pages) |
 
 Сайтът е изцяло статичен — Astro изпраща 0 KB JavaScript по default, което е оптимално за бързина и LLM индексиране.
 
@@ -83,7 +84,7 @@
 
 ### 4.8 Контакт
 Два елемента side-by-side (responsive: stack на мобилен):
-- **Netlify форма** — Имe, Телефон/Имейл, Описание на имота, Тип услуга (dropdown), Съобщение
+- **Formspree форма** — Имe, Телефон/Имейл, Описание на имота, Тип услуга (dropdown), Съобщение; submit → имейл до собственика
 - **Google Calendar embed** — `<iframe>` към Appointment Scheduling страницата
 
 ---
@@ -195,9 +196,12 @@ vodna-ocenka/               ← отделно repo, не в HydroLog
 ├── public/
 │   ├── llms.txt
 │   ├── robots.txt
+│   ├── CNAME                 ← custom domain за GitHub Pages
 │   └── favicon.svg
+├── .github/
+│   └── workflows/
+│       └── deploy.yml        ← build + deploy към gh-pages
 ├── astro.config.mjs
-├── netlify.toml
 └── package.json
 ```
 
@@ -207,8 +211,9 @@ vodna-ocenka/               ← отделно repo, не в HydroLog
 
 Преди deploy:
 1. **Google Calendar Appointment Scheduling** — настроен schedule и embed URL/iframe код
-2. **Netlify акаунт** — безплатен, свързан с repo
-3. **Домейн** — TBD; свързва се в Netlify DNS settings
+2. **Formspree акаунт** — безплатен; от него се взема form endpoint URL
+3. **GitHub repo** — публичен (изискване на GitHub Pages безплатен tier)
+4. **Домейн** — TBD; при регистратора: A records → GitHub Pages IPs, CNAME `www` → `<username>.github.io`
 
 ---
 

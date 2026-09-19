@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Разрешително за воден сондаж: пълен наръчник 2026 — ВоднаОценка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy-deep: #060E1C; --navy: #0A1628; --blue: #1B6CA8;
+      --blue-bright: #2680C2; --green: #5C8A3C; --green-bright: #6AAF44;
+      --sand: #F8F6F1; --white: #FFFFFF; --border: #E5E0D5;
+      --text: #1A1A2E; --muted: #6B7280; --font: 'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--sand); color: var(--text); line-height: 1.7; font-size: 16px; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      position: sticky; top: 0; z-index: 200; height: 64px;
+      background: rgba(248,246,241,.96); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+    .nav-inner { max-width: 1160px; margin: 0 auto; padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 18px; font-weight: 800; letter-spacing: -.04em; color: var(--navy); }
+    .logo em { color: var(--green-bright); font-style: normal; }
+    .nav-btn { background: var(--blue-bright); color: #fff; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+
+    .article-hero {
+      background: linear-gradient(155deg, var(--navy-deep) 0%, var(--navy) 100%);
+      padding: 72px 0 64px; color: #fff;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .wrap-wide { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .article-tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--green-bright); margin-bottom: 20px; }
+    .article-hero h1 { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.2; letter-spacing: -.03em; margin-bottom: 20px; }
+    .article-hero .lead { font-size: 18px; color: rgba(255,255,255,.65); line-height: 1.65; max-width: 620px; }
+    .article-meta { margin-top: 32px; font-size: 13px; color: rgba(255,255,255,.4); display: flex; gap: 24px; }
+
+    .article-body { padding: 64px 0 80px; }
+    .article-body h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin: 52px 0 16px; color: var(--navy); }
+    .article-body h3 { font-size: 18px; font-weight: 700; margin: 36px 0 12px; color: var(--navy); }
+    .article-body p { font-size: 17px; line-height: 1.78; color: #333; margin-bottom: 20px; }
+    .article-body ul, .article-body ol { padding-left: 24px; margin-bottom: 20px; }
+    .article-body li { font-size: 17px; line-height: 1.78; color: #333; margin-bottom: 8px; }
+    .article-body strong { font-weight: 700; color: var(--navy); }
+
+    .callout {
+      background: var(--white); border-left: 4px solid var(--blue-bright);
+      border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0;
+    }
+    .callout p { margin: 0; font-size: 16px; }
+    .callout-warn { background: #FFF7ED; border-left-color: #F59E0B; }
+
+    .steps { display: flex; flex-direction: column; gap: 0; margin: 32px 0; }
+    .step-item { display: flex; gap: 20px; padding: 24px 0; border-bottom: 1px solid var(--border); }
+    .step-item:last-child { border-bottom: none; }
+    .step-num { font-size: 28px; font-weight: 800; color: var(--blue-bright); opacity: .25; flex-shrink: 0; width: 40px; line-height: 1; }
+    .step-content h4 { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .step-content p { font-size: 15px; color: var(--muted); margin: 0; line-height: 1.65; }
+
+    .bd-table { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 15px; }
+    .bd-table th { background: var(--navy); color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; }
+    .bd-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .bd-table tr:last-child td { border-bottom: none; }
+    .bd-table tr:nth-child(even) td { background: var(--white); }
+
+    .back-link { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--blue); margin-bottom: 48px; }
+    .back-link:hover { opacity: .75; }
+
+    footer { background: var(--navy-deep); color: rgba(255,255,255,.42); padding: 40px 0; text-align: center; font-size: 14px; }
+    footer .foot-logo { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -.04em; margin-bottom: 8px; }
+    footer .foot-logo em { color: var(--green-bright); font-style: normal; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="vodna-ocenka-preview.html" class="logo">Водна<em>Оценка</em></a>
+    <a href="vodna-ocenka-preview.html#contact" class="nav-btn">Заяви оценка</a>
+  </div>
+</nav>
+
+<div class="article-hero">
+  <div class="wrap">
+    <p class="article-tag">Правна информация</p>
+    <h1>Разрешително за воден сондаж: пълен наръчник 2026</h1>
+    <p class="lead">Стъпка по стъпка: от хидрогеоложки доклад до регистрация в Басейновата дирекция и санитарно-охранителна зона.</p>
+    <div class="article-meta">
+      <span>Август 2026</span>
+      <span>10 мин. четене</span>
+    </div>
+  </div>
+</div>
+
+<div class="article-body">
+  <div class="wrap">
+    <a href="vodna-ocenka-preview.html#blog" class="back-link">← Обратно към блога</a>
+
+    <p>Сондирането на кладенец или тръбен кладенец в България не е просто строително-техническа дейност — то е <strong>водовземане от подземни водни тела</strong>, регулирано от Закона за водите. Без надлежно разрешително рискувате глоба, запечатване на съоръжението и невъзможност да узаконите водоснабдяването си по-нататък.</p>
+
+    <p>Ето какво трябва да знаете преди да вземете решение за сондаж.</p>
+
+    <div class="callout callout-warn">
+      <p><strong>Важно:</strong> Тази статия има информационен характер и не представлява правна консултация. Конкретните изисквания може да варират в зависимост от местоположението и целевото водоползване. Проверявайте актуалното законодателство и се консултирайте с компетентни органи.</p>
+    </div>
+
+    <h2>Кога е необходимо разрешително</h2>
+
+    <p>Съгласно Закона за водите, <strong>разрешително за водовземане</strong> е задължително при:</p>
+    <ul>
+      <li>Сондажен кладенец за домакински нужди с дебит над определен праг</li>
+      <li>Всяко промишлено или земеделско водоползване от подземни води</li>
+      <li>Сондажи за напоителни системи</li>
+    </ul>
+
+    <p>За малки дебити, предназначени изключително за собствено битово водоснабдяване, законодателството предвижда опростена процедура — <strong>регистрация</strong> вместо пълно разрешително. Границата между двата режима зависи от дебита и от конкретната Басейнова дирекция.</p>
+
+    <p>Консултирайте се с местната Басейнова дирекция преди да започнете, за да разберете кой режим се прилага за вашия случай.</p>
+
+    <h2>Кои са Басейновите дирекции</h2>
+
+    <p>България е разделена на четири водосборни района, всеки с отговорна Басейнова дирекция:</p>
+
+    <table class="bd-table">
+      <thead>
+        <tr><th>Басейнова дирекция</th><th>Покрит район</th><th>Седалище</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Дунавски район</td><td>Северна България</td><td>Плевен</td></tr>
+        <tr><td>Черноморски район</td><td>Черноморско крайбрежие</td><td>Варна</td></tr>
+        <tr><td>Западнобеломорски район</td><td>Западна и Югозападна България</td><td>Благоевград</td></tr>
+        <tr><td>Източнобеломорски район</td><td>Централна и Южна България</td><td>Пловдив</td></tr>
+      </tbody>
+    </table>
+
+    <p>Компетентна е дирекцията, в чийто район се намира имотът — не тази по адрес на регистрация на заявителя.</p>
+
+    <h2>Необходими документи</h2>
+
+    <p>За пълна процедура за издаване на разрешително за водовземане обикновено са необходими:</p>
+    <ul>
+      <li><strong>Заявление</strong> по образец на съответната Басейнова дирекция</li>
+      <li><strong>Хидрогеоложки доклад</strong> — изготвен от правоспособен хидрогеолог, описва подземното водно тяло, прогнозния дебит и обосновава исканото водовземане</li>
+      <li><strong>Скица на имота</strong> от кадастралната карта</li>
+      <li><strong>Документ за собственост</strong> или учредено право на ползване</li>
+      <li><strong>Технически проект</strong> на сондажното съоръжение</li>
+      <li>При по-значителен дебит — <strong>проект за санитарно-охранителна зона (СОЗ)</strong></li>
+    </ul>
+
+    <h2>Процедурата стъпка по стъпка</h2>
+
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <h4>Геофизично изследване и хидрогеоложка оценка</h4>
+          <p>Преди да подадете заявление, се нуждаете от данни за подземното водно тяло. Магнитно-телуричното изследване определя препоръчителната точка и прогнозната дълбочина — тези данни са основа за хидрогеоложкия доклад.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <h4>Изготвяне на хидрогеоложки доклад</h4>
+          <p>Правоспособен хидрогеолог изготвя доклад, включващ описание на геоложката среда, данни от геофизичното изследване и обосновка на исканото водовземане (дебит, предназначение).</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <h4>Подаване на заявление в Басейновата дирекция</h4>
+          <p>Заявлението с комплект документи се подава на гишето или по електронен път. Дирекцията извършва проверка за пълнота и уведомява при нередовности.</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <h4>Разглеждане и издаване на разрешително</h4>
+          <p>Срокът за произнасяне е нормативно определен. Разрешителното указва допустимия дебит, предназначението на водата и задълженията на титуляря (водомер, отчети).</p>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">05</div>
+        <div class="step-content">
+          <h4>Сондиране и регистрация на съоръжението</h4>
+          <p>След получаване на разрешителното сондажното дружество изгражда съоръжението. То подлежи на регистрация и въвеждане в експлоатация по реда на Закона за водите.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2>Санитарно-охранителна зона (СОЗ)</h2>
+
+    <p>При по-значителен добив или когато водата се използва за питейно-битови нужди на повече от едно домакинство, се изисква <strong>проект за санитарно-охранителна зона</strong>. СОЗ ограничава определени дейности около сондажното съоръжение, за да се предотврати замърсяване.</p>
+
+    <p>Зоната се определя от хидрогеолог въз основа на характеристиките на водоносния хоризонт и може да включва пояси с различен режим на ограничения. Проектът се одобрява от Басейновата дирекция.</p>
+
+    <h2>Какво се случва без разрешително</h2>
+
+    <p>Сондирането без разрешително или регистрация е административно нарушение по Закона за водите. Санкциите включват:</p>
+    <ul>
+      <li>Глоби за физически и юридически лица</li>
+      <li>Задължение за ликвидиране на незаконното съоръжение за сметка на нарушителя</li>
+      <li>Невъзможност за последващо узаконяване в много случаи</li>
+      <li>Проблеми при продажба на имота — незаконен кладенец е тежест</li>
+    </ul>
+
+    <div class="callout">
+      <p>Нашата хидрогеоложка оценка предоставя данните, необходими за изготвяне на хидрогеоложкия доклад към заявлението. <a href="vodna-ocenka-preview.html#contact" style="color:var(--blue);font-weight:600;">Свържете се с нас →</a></p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap-wide">
+    <div class="foot-logo">Водна<em>Оценка</em></div>
+    <p>© 2026 ВоднаОценка. Всички права запазени.</p>
+  </div>
+</footer>
+
+</body>
+</html>

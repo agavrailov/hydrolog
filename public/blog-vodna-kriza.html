@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Водната криза в България: защо частните водоизточници стават необходимост — ВоднаОценка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy-deep: #060E1C; --navy: #0A1628; --blue: #1B6CA8;
+      --blue-bright: #2680C2; --green: #5C8A3C; --green-bright: #6AAF44;
+      --sand: #F8F6F1; --white: #FFFFFF; --border: #E5E0D5;
+      --text: #1A1A2E; --muted: #6B7280; --font: 'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--sand); color: var(--text); line-height: 1.7; font-size: 16px; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      position: sticky; top: 0; z-index: 200; height: 64px;
+      background: rgba(248,246,241,.96); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+    .nav-inner { max-width: 1160px; margin: 0 auto; padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 18px; font-weight: 800; letter-spacing: -.04em; color: var(--navy); }
+    .logo em { color: var(--green-bright); font-style: normal; }
+    .nav-btn { background: var(--blue-bright); color: #fff; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+
+    .article-hero {
+      background: linear-gradient(155deg, var(--navy-deep) 0%, var(--navy) 100%);
+      padding: 72px 0 64px; color: #fff;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .wrap-wide { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .article-tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--green-bright); margin-bottom: 20px; }
+    .article-hero h1 { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.2; letter-spacing: -.03em; margin-bottom: 20px; }
+    .article-hero .lead { font-size: 18px; color: rgba(255,255,255,.65); line-height: 1.65; max-width: 620px; }
+    .article-meta { margin-top: 32px; font-size: 13px; color: rgba(255,255,255,.4); display: flex; gap: 24px; }
+
+    .article-body { padding: 64px 0 80px; }
+    .article-body h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin: 52px 0 16px; color: var(--navy); }
+    .article-body h3 { font-size: 18px; font-weight: 700; margin: 36px 0 12px; color: var(--navy); }
+    .article-body p { font-size: 17px; line-height: 1.78; color: #333; margin-bottom: 20px; }
+    .article-body ul, .article-body ol { padding-left: 24px; margin-bottom: 20px; }
+    .article-body li { font-size: 17px; line-height: 1.78; color: #333; margin-bottom: 8px; }
+    .article-body strong { font-weight: 700; color: var(--navy); }
+
+    .callout {
+      background: var(--white); border-left: 4px solid var(--blue-bright);
+      border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0;
+    }
+    .callout p { margin: 0; font-size: 16px; }
+    .callout-warn { background: #FFF7ED; border-left-color: #F59E0B; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 32px 0; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 24px 20px; text-align: center; }
+    .stat-card .stat-num { font-size: 36px; font-weight: 800; color: var(--blue-bright); letter-spacing: -.03em; line-height: 1; margin-bottom: 8px; }
+    .stat-card .stat-label { font-size: 14px; color: var(--muted); line-height: 1.45; }
+
+    .back-link { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--blue); margin-bottom: 48px; }
+    .back-link:hover { opacity: .75; }
+
+    footer { background: var(--navy-deep); color: rgba(255,255,255,.42); padding: 40px 0; text-align: center; font-size: 14px; }
+    footer .foot-logo { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -.04em; margin-bottom: 8px; }
+    footer .foot-logo em { color: var(--green-bright); font-style: normal; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="vodna-ocenka-preview.html" class="logo">Водна<em>Оценка</em></a>
+    <a href="vodna-ocenka-preview.html#contact" class="nav-btn">Заяви оценка</a>
+  </div>
+</nav>
+
+<div class="article-hero">
+  <div class="wrap">
+    <p class="article-tag">Контекст</p>
+    <h1>Водната криза в България: защо частните водоизточници стават необходимост</h1>
+    <p class="lead">Западналата инфраструктура, продължаващите суши и ВиК кризи карат собствениците на имоти да търсят независимост от централното водоснабдяване.</p>
+    <div class="article-meta">
+      <span>Октомври 2026</span>
+      <span>9 мин. четене</span>
+    </div>
+  </div>
+</div>
+
+<div class="article-body">
+  <div class="wrap">
+    <a href="vodna-ocenka-preview.html#blog" class="back-link">← Обратно към блога</a>
+
+    <p>Водоснабдяването в България е проблем, за който се говори на всяка суша, но рядко се решава системно. Между 2020 и 2024 г. поне пет области преживяха режимно водоподаване — ограничаване на водата по часове или дни. Някои домакинства останаха без вода за седмици. Много от тях вече имат собствен кладенец или тръбен кладенец.</p>
+
+    <p>Тази статия разглежда защо проблемът е структурен, какво кара все повече хора да търсят частен водоизточник и какво трябва да знаете, преди да направите стъпката.</p>
+
+    <h2>Мащабът на проблема</h2>
+
+    <p>Водопроводната мрежа в България е изградена предимно в периода 1950–1980 г. По оценки на ВиК операторите загубите в мрежата достигат <strong>60% на места</strong> — за всеки литър, стигнал до крана, два се губят по пътя. Тези загуби натоварват водоизточниците и правят мрежата уязвима при суша.</p>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num">60%</div>
+        <div class="stat-label">средни загуби в ВиК мрежата на места</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">5+</div>
+        <div class="stat-label">области с режимно водоподаване между 2020–2024 г.</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">30%</div>
+        <div class="stat-label">от населението извън ВиК мрежа или с нередовно снабдяване</div>
+      </div>
+    </div>
+
+    <p>Паралелно с инфраструктурния проблем, климатичните промени удрят България все по-тежко. Валежите не намаляват като годишно количество, но стават по-неравномерни — интензивни порои в кратки периоди, последвани от дълги сухи интервали. Язовирите не се пълнят достатъчно, подземните водни нива в някои райони спадат.</p>
+
+    <h2>Кои региони са най-засегнати</h2>
+
+    <p>Проблемите с водоснабдяването не са равномерно разпределени. Типично по-уязвими са:</p>
+
+    <ul>
+      <li><strong>Малки селища</strong> с остаряла локална мрежа, захранвана от малки каптажи или извори с ограничен дебит</li>
+      <li><strong>Крайградски имоти</strong>, включени в ВиК мрежата като периферия — последни в приоритета при ограничение</li>
+      <li><strong>Полупланински и планински райони</strong> с гравитачни водопроводи, зависими от снеговалежите</li>
+      <li><strong>Имоти в нови вилни зони</strong>, където ВиК инфраструктурата изостава от строителството</li>
+    </ul>
+
+    <p>В тези райони притежаването на собствен кладенец или тръбен кладенец не е лукс — то е застраховка срещу предвидима криза.</p>
+
+    <h2>Защо хората търсят собствен водоизточник</h2>
+
+    <h3>Независимост от централното снабдяване</h3>
+    <p>Собственият кладенец осигурява достъп до вода независимо от аварии в ВиК мрежата, режимно водоподаване или покачване на тарифите. За имот, използван целогодишно, това е сериозен аргумент при покупка.</p>
+
+    <h3>Напояване и земеделие</h3>
+    <p>Водата за напояване от ВиК мрежата е скъпа и в някои райони недостатъчна. Кладенецът с разрешително за напояване позволява независима градина, овощна градина или оранжерия. При по-сериозно земеделие разликата в разходите за вода е значителна.</p>
+
+    <h3>Стойността на имота</h3>
+    <p>Имотите с документиран собствен водоизточник се оценяват по-високо, особено в региони с известни ВиК проблеми. Купувачите плащат премия за сигурност. Обратното — имот без вода или с ненадеждно водоснабдяване трудно се продава на добра цена.</p>
+
+    <h3>Качество на водата</h3>
+    <p>Парадоксално, в някои райони подземната вода е с по-добри показатели от централно подаваната. Централните системи минават през стара инфраструктура, където може да има замърсяване. Подземната вода от добре конструиран кладенец с естествена водна покривка може да бъде по-чиста — но това се установява с анализ, не се предполага.</p>
+
+    <h2>Какво не е решение</h2>
+
+    <p>Съществуват и погрешни подходи, особено в имоти без централна ВиК мрежа:</p>
+
+    <ul>
+      <li><strong>Цистерни с доставяна вода</strong> — скъпо, непрактично за постоянно обитаване, уязвимо при логистични проблеми</li>
+      <li><strong>Незаконни кладенци</strong> — рискът е реален: санкции, запечатване, невъзможност за узаконяване и проблеми при продажба</li>
+      <li><strong>Сондаж без предварително проучване</strong> — сондаж на грешно място е €8 000–25 000 за сух кладенец</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <p><strong>Важно:</strong> Незаконният кладенец не е просто административен проблем. При продажба на имот нотариусите и банките все по-често изискват проверка за наличие на незаконни съоръжения. Незаконен кладенец може да блокира сделка или значително да намали цената.</p>
+    </div>
+
+    <h2>Рационалният подход</h2>
+
+    <p>Преди да вземете решение за сондаж, е нужно да знаете дали на конкретния парцел има водоносен хоризонт, на каква дълбочина и с какъв потенциал. Без тази информация сте изправени пред залог с непредвидим изход.</p>
+
+    <p>Геофизичното изследване — и по-специално магнитно-телуричният метод — дава профил на геоложкия разрез под имота: идентифицира проводящи зони с ниско електрическо съпротивление, характерни за водоносни хоризонти, и препоръчва точка и прогнозна дълбочина за сондаж. То не замества сондажа, но намалява риска от сух кладенец.</p>
+
+    <p>Следващата стъпка е хидрогеоложки доклад и разрешително от Басейновата дирекция — без него сондажът е незаконен. Накрая идва самият сондаж и изграждане на съоръжението.</p>
+
+    <p>Всяка спестена стъпка от тази последователност носи риск. Всяка измината стъпка в правилния ред е инвестиция в сигурност.</p>
+
+    <h2>Имотите в продажба — нова реалност</h2>
+
+    <p>Промяната в нагласите личи и на имотния пазар. Преди пет години въпросът „има ли вода на имота?" беше втори план. Днес за имоти в региони с известни ВиК проблеми той е един от първите. Агенциите, които могат да отговорят с данни — „да, има водоносен хоризонт на 35 метра, потенциалът е висок" — затварят сделките по-бързо и на по-добра цена.</p>
+
+    <p>Водната характеристика на имот стана инструмент за диференциация, не просто технически документ.</p>
+
+    <div class="callout">
+      <p>Искате да разберете водния потенциал на вашия имот — преди покупка, преди сондаж или преди продажба? <a href="vodna-ocenka-preview.html#contact" style="color:var(--blue);font-weight:600;">Заявете геофизично изследване →</a></p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap-wide">
+    <div class="foot-logo">Водна<em>Оценка</em></div>
+    <p>© 2026 ВоднаОценка. Всички права запазени.</p>
+  </div>
+</footer>
+
+</body>
+</html>

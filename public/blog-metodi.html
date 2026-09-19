@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Как се измерва водният потенциал на имот — ВоднаОценка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --navy-deep: #060E1C; --navy: #0A1628; --blue: #1B6CA8;
+      --blue-bright: #2680C2; --green: #5C8A3C; --green-bright: #6AAF44;
+      --sand: #F8F6F1; --white: #FFFFFF; --border: #E5E0D5;
+      --text: #1A1A2E; --muted: #6B7280; --font: 'Inter', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font); background: var(--sand); color: var(--text); line-height: 1.7; font-size: 16px; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+
+    nav {
+      position: sticky; top: 0; z-index: 200; height: 64px;
+      background: rgba(248,246,241,.96); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+    }
+    .nav-inner { max-width: 1160px; margin: 0 auto; padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-size: 18px; font-weight: 800; letter-spacing: -.04em; color: var(--navy); }
+    .logo em { color: var(--green-bright); font-style: normal; }
+    .nav-btn { background: var(--blue-bright); color: #fff; padding: 9px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; }
+
+    .article-hero {
+      background: linear-gradient(155deg, var(--navy-deep) 0%, var(--navy) 100%);
+      padding: 72px 0 64px; color: #fff;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+    .wrap-wide { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .article-tag { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--green-bright); margin-bottom: 20px; }
+    .article-hero h1 { font-size: clamp(28px, 4vw, 42px); font-weight: 800; line-height: 1.2; letter-spacing: -.03em; margin-bottom: 20px; }
+    .article-hero .lead { font-size: 18px; color: rgba(255,255,255,.65); line-height: 1.65; max-width: 620px; }
+    .article-meta { margin-top: 32px; font-size: 13px; color: rgba(255,255,255,.4); display: flex; gap: 24px; }
+
+    .article-body { padding: 64px 0 80px; }
+    .article-body h2 { font-size: 24px; font-weight: 700; letter-spacing: -.02em; margin: 52px 0 16px; color: var(--navy); }
+    .article-body h3 { font-size: 18px; font-weight: 700; margin: 36px 0 12px; color: var(--navy); }
+    .article-body p { font-size: 17px; line-height: 1.78; color: #333; margin-bottom: 20px; }
+    .article-body ul, .article-body ol { padding-left: 24px; margin-bottom: 20px; }
+    .article-body li { font-size: 17px; line-height: 1.78; color: #333; margin-bottom: 8px; }
+    .article-body strong { font-weight: 700; color: var(--navy); }
+
+    .callout {
+      background: var(--white); border-left: 4px solid var(--blue-bright);
+      border-radius: 0 12px 12px 0; padding: 20px 24px; margin: 32px 0;
+    }
+    .callout p { margin: 0; font-size: 16px; }
+
+    .callout-warn {
+      background: #FFF7ED; border-left-color: #F59E0B;
+    }
+
+    .back-link { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--blue); margin-bottom: 48px; }
+    .back-link:hover { opacity: .75; }
+
+    footer { background: var(--navy-deep); color: rgba(255,255,255,.42); padding: 40px 0; text-align: center; font-size: 14px; }
+    footer .foot-logo { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -.04em; margin-bottom: 8px; }
+    footer .foot-logo em { color: var(--green-bright); font-style: normal; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="vodna-ocenka-preview.html" class="logo">Водна<em>Оценка</em></a>
+    <a href="vodna-ocenka-preview.html#contact" class="nav-btn">Заяви оценка</a>
+  </div>
+</nav>
+
+<div class="article-hero">
+  <div class="wrap">
+    <p class="article-tag">Основи</p>
+    <h1>Как се измерва водният потенциал на имот — методи и ограничения</h1>
+    <p class="lead">Геофизичните методи за търсене на подземна вода — какво измерват, колко са точни и кога са недостатъчни.</p>
+    <div class="article-meta">
+      <span>Септември 2026</span>
+      <span>8 мин. четене</span>
+    </div>
+  </div>
+</div>
+
+<div class="article-body">
+  <div class="wrap">
+    <a href="vodna-ocenka-preview.html#blog" class="back-link">← Обратно към блога</a>
+
+    <p>Подземната вода не е равномерно разпределена. Тя се натрупва в т.нар. <strong>водоносни хоризонти</strong> — пластове от пясък, чакъл или напукана скала, в чиито пори и пукнатини се задържа вода. Дали даден парцел има такъв хоризонт, на каква дълбочина и с какъв потенциал — не може да се каже от пръв поглед. Но може да се измери.</p>
+
+    <h2>Защо не е достатъчно да питате съседите</h2>
+
+    <p>Геологията е локална. Двата парцела, разделени само от оградата, могат да имат напълно различен воден потенциал — ако границата минава по геоложки разлом или по ръба на водоносен пласт. Информацията „при съседа има вода на 30 метра" е добра ориентация, но не е надеждна прогноза за вашия имот.</p>
+
+    <p>Същото важи за регионалните хидрогеоложки карти — те дават обща картина, но с разделителна способност от стотици метри. Полезни са за първоначална преценка, не за вземане на решение за сондаж.</p>
+
+    <h2>Магнитно-телуричното изследване — как работи</h2>
+
+    <p>Магнитно-телуричният (МТ) метод е геофизичен метод, основан на <strong>естественото електромагнитно поле на Земята</strong>. Това поле се генерира непрекъснато от гръмотевични бури по целия свят и от взаимодействието на слънчевия вятър с магнитосферата.</p>
+
+    <p>Когато електромагнитните вълни навлязат в земната кора, те се затихват с различна скорост в зависимост от електрическото съпротивление на скалите. Водоносните хоризонти — особено тези с минерализирана вода — имат <strong>по-ниско съпротивление</strong> от сухите скали около тях. Уредът измерва естествените вариации на електрическото и магнитното поле на повърхността и по тях изгражда профил на геоложкия разрез надолу.</p>
+
+    <p>Резултатът е цифров профил: каква е структурата на пластовете, на каква дълбочина се променя съпротивлението и съответно — къде вероятно се намират водоносни зони.</p>
+
+    <div class="callout">
+      <p><strong>Ключовото предимство на МТ метода:</strong> не изисква инжектиране на ток в земята и не зависи от оператора. Измерва се пасивно — уредът само регистрира. Резултатът може да се провери, повтори и оспори от друг специалист.</p>
+    </div>
+
+    <h2>Какво показва измерването — и какво не</h2>
+
+    <p>МТ изследването дава:</p>
+    <ul>
+      <li><strong>Геоложки профил</strong> на пластовете до определена дълбочина</li>
+      <li><strong>Идентификация на проводящи зони</strong> — зони с ниско съпротивление, характерни за водоносни хоризонти</li>
+      <li><strong>Препоръчителна точка</strong> за сондаж — там, където профилът е най-благоприятен</li>
+      <li><strong>Прогнозна дълбочина</strong> на водоносния хоризонт</li>
+    </ul>
+
+    <p>МТ изследването <strong>не дава</strong>:</p>
+    <ul>
+      <li>Точен дебит — количеството вода се определя само при сондажен тест</li>
+      <li>Качество на водата — необходим е химичен анализ на водна проба</li>
+      <li>Стопроцентова сигурност — геологията може да бъде хетерогенна дори на метри</li>
+    </ul>
+
+    <div class="callout callout-warn">
+      <p><strong>Важно:</strong> Никой геофизичен метод не замества сондажа. Той намалява риска от сух сондаж, като ви казва къде да копаете — не дали там задължително ще намерите вода.</p>
+    </div>
+
+    <h2>Сравнение с другите методи</h2>
+
+    <h3>Вертикално електрическо сондиране (ВЕС)</h3>
+    <p>По-старият метод, при който се инжектира ток в земята чрез електроди. Дава сходна информация за съпротивлението на пластовете. По-евтин, но по-ограничен по дълбочина и чувствителен към повърхностни смущения (метални огради, кабели). Подходящ за плитки проучвания.</p>
+
+    <h3>Сеизмично пречупване</h3>
+    <p>Измерва скоростта на сеизмичните вълни в различните пластове. Полезен за определяне на дълбочината до скалния масив, но не разграничава водоносни от безводни пластове директно. Рядко се използва самостоятелно при търсене на вода.</p>
+
+    <h3>Търсене с багети (радиоестезия)</h3>
+    <p>Не е геофизичен метод — не измерва физична величина. Независимите изследвания не намират статистически значима точност над случайното угаждане. За разлика от МТ метода, резултатът не може да се провери или повтори — зависи изцяло от интерпретацията на оператора.</p>
+
+    <h2>Кога геофизиката помага — и кога не</h2>
+
+    <p>Геофизичното изследване е най-полезно при:</p>
+    <ul>
+      <li>Парцели в хълмист или планински терен с разнороден геоложки строеж</li>
+      <li>Имоти в район, където резултатите от сондажите са непредсказуеми</li>
+      <li>Решение за покупка — преди да платите капаро</li>
+      <li>Избор между няколко точки на парцела за сондаж</li>
+    </ul>
+
+    <p>По-малко полезно е при:</p>
+    <ul>
+      <li>Много плитки, еднородни алувиални отложения (там ВЕС или сондажен тест са по-бързи)</li>
+      <li>Имоти с голямо количество метални конструкции, кабели или тръби (електромагнитни смущения)</li>
+      <li>Когато районът вече има добре документирана хидрогеоложка история с близки сондажи</li>
+    </ul>
+
+    <h2>Заключение</h2>
+
+    <p>Магнитно-телуричното изследване е съвременен, обективен инструмент за намаляване на несигурността при вземане на решение за сондаж. То не обещава вода — обещава данни. А данните са единственото, на което можете да разчитате, когато залогът е €8 000–25 000 за сондаж на грешно място.</p>
+
+    <div class="callout">
+      <p>Имате имот и искате да разберете водния му потенциал? <a href="vodna-ocenka-preview.html#contact" style="color:var(--blue);font-weight:600;">Заявете магнитно-телурично изследване →</a></p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap-wide">
+    <div class="foot-logo">Водна<em>Оценка</em></div>
+    <p>© 2026 ВоднаОценка. Всички права запазени.</p>
+  </div>
+</footer>
+
+</body>
+</html>

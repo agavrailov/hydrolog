@@ -1,0 +1,31 @@
+{
+  "name": "HydroLog",
+  "short_name": "HydroLog",
+  "description": "Hydrogeological ERT survey field tool",
+  "start_url": "/hydrolog/#/",
+  "scope": "/hydrolog/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0d1a28",
+  "background_color": "#0d1a28",
+  "icons": [
+    {
+      "src": "/hydrolog/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/hydrolog/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/hydrolog/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { AnomalyForm } from './AnomalyForm';
 import type { ChannelSetSnapshot } from '../domain/types';
 
@@ -19,8 +19,10 @@ const channelSet = makeChannelSet();
 const defaults = { pointCount: 17, channelSet };
 
 describe('<AnomalyForm />', () => {
-  it('renders from/to point and depth inputs', () => {
-    render(<AnomalyForm {...defaults} onSubmit={vi.fn()} />);
+  it('renders from/to point and depth inputs after expanding via location pill', () => {
+    const sel = { fromPoint: 2, toPoint: 5, fromDepthM: 10, toDepthM: 40 };
+    render(<AnomalyForm {...defaults} onSubmit={vi.fn()} initialSelection={sel} />);
+    act(() => { fireEvent.click(screen.getByRole('button', { name: /т\.\d/i })); });
     expect(screen.getByLabelText('От точка')).toBeInTheDocument();
     expect(screen.getByLabelText('До точка')).toBeInTheDocument();
     expect(screen.getByLabelText('От дълбочина (m)')).toBeInTheDocument();

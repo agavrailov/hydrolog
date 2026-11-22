@@ -16,11 +16,6 @@ export function SiteList({ onOpen, onNew }: Props) {
     <div>
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{labels.home.sitesHeading}</h2>
-        {onNew && (
-          <button className="btn-primary" onClick={onNew} style={{ fontSize: '0.9rem', padding: '0 var(--space-4)', height: 40, minHeight: 'unset' }}>
-            + {labels.home.newSite}
-          </button>
-        )}
       </div>
 
       <div className="search-bar">

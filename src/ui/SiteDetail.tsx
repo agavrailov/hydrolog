@@ -64,12 +64,13 @@ export function SiteDetail(props: Props) {
       <div className="btn-row">
         <button className="btn-secondary" onClick={props.onEdit} disabled={busy}>{labels.common.edit}</button>
         <button className="btn-danger" onClick={onDelete} disabled={busy}>{labels.common.delete}</button>
-        <button className="btn-primary" onClick={props.onNewSurvey} disabled={busy}>{l.newSurvey}</button>
       </div>
 
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{l.surveysHeading}</h2>
       </div>
+
+      <button className="fab" onClick={props.onNewSurvey} disabled={busy} aria-label={l.newSurvey}>+</button>
 
       {surveys === undefined ? (
         <p className="loading-text">{labels.common.loading}</p>

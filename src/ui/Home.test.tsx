@@ -63,14 +63,14 @@ describe('<Home />', () => {
     });
   });
 
-  it('renders the sync indicator with a nag level', async () => {
+  it('renders the sync indicator as ok after loading folder (probe written)', async () => {
     const root = createMockRoot();
     setFsAdapter({ showDirectoryPicker: async () => root });
     render(<Home />);
     const pick = await screen.findByRole('button', { name: /избери папка/i });
     await userEvent.click(pick);
     await waitFor(() => {
-      expect(screen.getByTestId('sync-indicator')).toHaveAttribute('data-nag', 'red');
+      expect(screen.getByTestId('sync-indicator')).toHaveAttribute('data-nag', 'ok');
     });
   });
 });

@@ -48,6 +48,19 @@ export async function verifyPermission(
   return (await handle.requestPermission?.(opts)) === 'granted';
 }
 
+/** Non-prompting permission check — safe to call without a user gesture. */
+export async function hasPermission(
+  handle: FileSystemDirectoryHandle,
+  mode: 'read' | 'readwrite' = 'readwrite',
+): Promise<boolean> {
+  try {
+    // @ts-expect-error queryPermission is on real handles; mock provides it.
+    return (await handle.queryPermission?.({ mode })) === 'granted';
+  } catch {
+    return false;
+  }
+}
+
 let currentRoot: FileSystemDirectoryHandle | null = null;
 
 export function setRoot(handle: FileSystemDirectoryHandle): void {
@@ -56,9 +69,13 @@ export function setRoot(handle: FileSystemDirectoryHandle): void {
 
 export function getRoot(): FileSystemDirectoryHandle {
   if (!currentRoot) {
-    throw new Error('root folder not set — call setRoot() after picking a folder');
+    throw new Error('Няма достъп до папката — натиснете „Разреши достъп“ горе вдясно');
   }
   return currentRoot;
+}
+
+export function hasRoot(): boolean {
+  return currentRoot !== null;
 }
 
 export function clearRoot(): void {

@@ -24,18 +24,24 @@ export async function readLatestSyncedProbe(
   const dir = await getPath(root, [PROBE_DIR]);
   if (!dir) return null;
 
-  let best: Date | null = null;
+  // Probe names are sortable timestamps (YYYY-MM-DDTHH-mm.json). List names
+  // only and read newest-first until one parses — avoids reading every probe
+  // ever written (one accumulates per app start).
+  const names: string[] = [];
   for await (const [name, h] of (dir as any).entries()) {
-    if (h.kind !== 'file' || !name.endsWith('.json')) continue;
+    if (h.kind === 'file' && name.endsWith('.json')) names.push(name);
+  }
+  names.sort().reverse();
+  for (const name of names) {
     try {
       const rec = await readJson<ProbeRecord>(dir, name);
       const t = new Date(rec.writtenAt);
-      if (!Number.isNaN(t.getTime()) && (!best || t > best)) best = t;
+      if (!Number.isNaN(t.getTime())) return t;
     } catch {
       // skip corrupt probes
     }
   }
-  return best;
+  return null;
 }
 
 export async function hoursSinceLastSync(

@@ -65,98 +65,125 @@ async function optionalJson<T>(
   }
 }
 
-export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanResult> {
-  const schemaFile = await optionalJson<{ version: string }>(root, '_schema.json');
-  const schemaVersion = schemaFile?.version ?? 'unknown';
+function notNull<T>(x: T | null): x is T {
+  return x !== null;
+}
 
-  const sitesRoot = await getPath(root, ['sites']);
+// All directory levels are walked in parallel (Promise.all keeps order).
+// File System Access calls are async I/O — on Android each one round-trips
+// through a content provider, so sequential awaits dominated startup time.
+
+async function scanLine(
+  linesRoot: FileSystemDirectoryHandle,
+  lnFolderName: string,
+): Promise<LineScan | null> {
+  const lnDir = await linesRoot.getDirectoryHandle(lnFolderName);
+  let line: Line;
+  try {
+    const raw = await readJson<Line & { pointSpacingM?: number; electrodeSpacingM?: number }>(lnDir, 'line.json');
+    if (raw.spacingM == null) {
+      raw.spacingM = raw.pointSpacingM ?? raw.electrodeSpacingM ?? 2;
+    }
+    line = raw;
+  } catch (e) {
+    console.warn(`Skipping ${lnFolderName}: missing or invalid line.json —`, e);
+    return null;
+  }
+
+  const [deviceFilesDir, mediaDir, allLineFiles] = await Promise.all([
+    getPath(lnDir, ['device-files']),
+    getPath(lnDir, ['media']),
+    listFiles(lnDir),
+  ]);
+
+  const [hasDeviceFiles, mediaFiles, deviceMediaRaw] = await Promise.all([
+    deviceFilesDir ? listFiles(deviceFilesDir).then((f) => f.length > 0) : Promise.resolve(false),
+    mediaDir ? listFiles(mediaDir) : Promise.resolve([] as string[]),
+    Promise.all(
+      allLineFiles
+        .filter((n) => /^device-media-\d+\.json$/.test(n))
+        .map((f) => optionalJson<MediaAsset>(lnDir, f)),
+    ),
+  ]);
+  const deviceMedia = deviceMediaRaw.filter((m): m is MediaAsset => !!m);
+
+  return { line, folderName: lnFolderName, hasDeviceFiles, mediaFiles, deviceMedia };
+}
+
+async function scanSurvey(
+  surveysRoot: FileSystemDirectoryHandle,
+  svFolderName: string,
+): Promise<SurveyScan | null> {
+  const svDir = await surveysRoot.getDirectoryHandle(svFolderName);
+  let survey: Survey;
+  try {
+    survey = await readJson<Survey>(svDir, 'survey.json');
+  } catch (e) {
+    console.warn(`Skipping ${svFolderName}: missing or invalid survey.json —`, e);
+    return null;
+  }
+  const [interpretation, linesRoot] = await Promise.all([
+    optionalJson<Interpretation>(svDir, 'interpretation.json'),
+    getPath(svDir, ['lines']),
+  ]);
+
+  let lines: LineScan[] = [];
+  if (linesRoot) {
+    const lineDirs = await listDirs(linesRoot);
+    lines = (await Promise.all(lineDirs.map((n) => scanLine(linesRoot, n)))).filter(notNull);
+  }
+
+  return { survey, folderName: svFolderName, interpretation, lines, outcomes: [] };
+}
+
+async function scanSite(
+  sitesRoot: FileSystemDirectoryHandle,
+  siteFolderName: string,
+): Promise<SiteScan | null> {
+  const siteDir = await sitesRoot.getDirectoryHandle(siteFolderName);
+  let site: Site;
+  try {
+    site = await readJson<Site>(siteDir, 'site.json');
+  } catch (e) {
+    console.warn(`Skipping ${siteFolderName}: missing or invalid site.json —`, e);
+    return null;
+  }
+
+  const [regulatory, surveysRoot, outcomesDir] = await Promise.all([
+    optionalJson<RegulatoryContext>(siteDir, 'regulatory.json'),
+    getPath(siteDir, ['surveys']),
+    getPath(siteDir, ['outcomes']),
+  ]);
+
+  const surveysP: Promise<SurveyScan[]> = surveysRoot
+    ? listDirs(surveysRoot).then((dirs) =>
+        Promise.all(dirs.map((n) => scanSurvey(surveysRoot, n))).then((r) => r.filter(notNull)))
+    : Promise.resolve([]);
+
+  const outcomesP: Promise<DrillOutcome[]> = outcomesDir
+    ? listFiles(outcomesDir).then((files) =>
+        Promise.all(files.filter((n) => n.endsWith('.json')).map((f) => readJson<DrillOutcome>(outcomesDir, f))))
+    : Promise.resolve([]);
+
+  const [surveys, outcomes] = await Promise.all([surveysP, outcomesP]);
+
+  // Distribute outcomes to whichever survey they reference (via interpretationId → survey via linkage).
+  // For now, outcomes are attached to the first survey; refinement in the outcomes-management task.
+  if (surveys.length > 0) surveys[0].outcomes.push(...outcomes);
+
+  return { site, folderName: siteFolderName, regulatory, surveys };
+}
+
+export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanResult> {
+  const [schemaFile, sitesRoot] = await Promise.all([
+    optionalJson<{ version: string }>(root, '_schema.json'),
+    getPath(root, ['sites']),
+  ]);
+  const schemaVersion = schemaFile?.version ?? 'unknown';
   if (!sitesRoot) return { schemaVersion, sites: [] };
 
   const siteDirs = await listDirs(sitesRoot);
-  const sites: SiteScan[] = [];
-
-  for (const siteFolderName of siteDirs) {
-    const siteDir = await sitesRoot.getDirectoryHandle(siteFolderName);
-    let site: Site;
-    try {
-      site = await readJson<Site>(siteDir, 'site.json');
-    } catch (e) {
-      console.warn(`Skipping ${siteFolderName}: missing or invalid site.json —`, e);
-      continue;
-    }
-    const regulatory = await optionalJson<RegulatoryContext>(siteDir, 'regulatory.json');
-
-    const surveys: SurveyScan[] = [];
-    const surveysRoot = await getPath(siteDir, ['surveys']);
-    if (surveysRoot) {
-      const surveyDirs = await listDirs(surveysRoot);
-      for (const svFolderName of surveyDirs) {
-        const svDir = await surveysRoot.getDirectoryHandle(svFolderName);
-        let survey: Survey;
-        try {
-          survey = await readJson<Survey>(svDir, 'survey.json');
-        } catch (e) {
-          console.warn(`Skipping ${svFolderName}: missing or invalid survey.json —`, e);
-          continue;
-        }
-        const interpretation = await optionalJson<Interpretation>(svDir, 'interpretation.json');
-
-        const lines: LineScan[] = [];
-        const linesRoot = await getPath(svDir, ['lines']);
-        if (linesRoot) {
-          const lineDirs = await listDirs(linesRoot);
-          for (const lnFolderName of lineDirs) {
-            const lnDir = await linesRoot.getDirectoryHandle(lnFolderName);
-            let line: Line;
-            try {
-              const raw = await readJson<Line & { pointSpacingM?: number; electrodeSpacingM?: number }>(lnDir, 'line.json');
-              if (raw.spacingM == null) {
-                raw.spacingM = raw.pointSpacingM ?? raw.electrodeSpacingM ?? 2;
-              }
-              line = raw;
-            } catch (e) {
-              console.warn(`Skipping ${lnFolderName}: missing or invalid line.json —`, e);
-              continue;
-            }
-
-            const deviceFilesDir = await getPath(lnDir, ['device-files']);
-            const hasDeviceFiles = deviceFilesDir
-              ? (await listFiles(deviceFilesDir)).length > 0
-              : false;
-
-            const mediaDir = await getPath(lnDir, ['media']);
-            const mediaFiles = mediaDir ? await listFiles(mediaDir) : [];
-
-            const deviceMedia: MediaAsset[] = [];
-            const allLineFiles = await listFiles(lnDir);
-            for (const f of allLineFiles.filter((n) => /^device-media-\d+\.json$/.test(n))) {
-              const m = await optionalJson<MediaAsset>(lnDir, f);
-              if (m) deviceMedia.push(m);
-            }
-
-            lines.push({ line, folderName: lnFolderName, hasDeviceFiles, mediaFiles, deviceMedia });
-          }
-        }
-
-        surveys.push({ survey, folderName: svFolderName, interpretation, lines, outcomes: [] });
-      }
-    }
-
-    const outcomes: DrillOutcome[] = [];
-    const outcomesDir = await getPath(siteDir, ['outcomes']);
-    if (outcomesDir) {
-      const files = await listFiles(outcomesDir);
-      for (const f of files.filter((n) => n.endsWith('.json'))) {
-        const o = await readJson<DrillOutcome>(outcomesDir, f);
-        outcomes.push(o);
-      }
-    }
-    // Distribute outcomes to whichever survey they reference (via interpretationId → survey via linkage).
-    // For now, outcomes are attached to the first survey; refinement in the outcomes-management task.
-    if (surveys.length > 0) surveys[0].outcomes.push(...outcomes);
-
-    sites.push({ site, folderName: siteFolderName, regulatory, surveys });
-  }
+  const sites = (await Promise.all(siteDirs.map((n) => scanSite(sitesRoot, n)))).filter(notNull);
 
   return { schemaVersion, sites };
 }

@@ -48,7 +48,7 @@ describe('<SiteForm mode="create">', () => {
     await userEvent.click(screen.getByRole('button', { name: /запази/i }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toMatch(/root folder/i);
+    expect(alert.textContent).toMatch(/достъп до папката/i);
   });
 });
 

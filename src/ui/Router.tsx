@@ -5,7 +5,6 @@ import { SiteForm } from './SiteForm';
 import { SurveyForm } from './SurveyForm';
 import { SiteDetail } from './SiteDetail';
 import { SurveyDetail } from './SurveyDetail';
-import { LineCaptureScreen } from './LineCaptureScreen';
 import { LineDetail } from './LineDetail';
 import { ImportScreen } from './ImportScreen';
 import { useSite, useSurvey } from '../cache/hooks';
@@ -81,19 +80,7 @@ function SurveyDetailRoute({ params }: { params: { id: string; svId: string } })
       surveyId={params.svId}
       onEdit={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/edit`)}
       onImport={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/import`)}
-      onNewLine={() => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/new`)}
       onOpenLine={(lnId) => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/${lnId}`)}
-    />
-  );
-}
-
-function LineNewRoute({ params }: { params: { id: string; svId: string } }) {
-  const [, setLocation] = useLocation();
-  return (
-    <LineCaptureScreen
-      surveyId={params.svId}
-      onSaved={(lineId) => setLocation(`/sites/${params.id}/surveys/${params.svId}/lines/${lineId}`)}
-      onCancel={() => setLocation(`/sites/${params.id}/surveys/${params.svId}`)}
     />
   );
 }
@@ -142,9 +129,6 @@ export function Router() {
       </Route>
       <Route path="/sites/:id/surveys/:svId/edit">
         {(params) => <SurveyEditRoute params={params as { id: string; svId: string }} />}
-      </Route>
-      <Route path="/sites/:id/surveys/:svId/lines/new">
-        {(params) => <LineNewRoute params={params as { id: string; svId: string }} />}
       </Route>
       <Route path="/sites/:id/surveys/:svId/lines/:lnId">
         {(params) => <LineDetailRoute params={params as { id: string; svId: string; lnId: string }} />}

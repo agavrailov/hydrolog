@@ -90,7 +90,7 @@ describe('<Home /> cache-first startup', () => {
 
   it('with permission already granted, renders from cache and refreshes in the background', async () => {
     const root = await fixtureRoot();
-    await rebuildCache({ schemaVersion: 'x', sites: [] });  // stale but warm cache
+    await rebuildCache({ schemaVersion: 'x', startedAt: new Date(), sites: [] });  // stale but warm cache
     persisted = root;
 
     render(<Home />);

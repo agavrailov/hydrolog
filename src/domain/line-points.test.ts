@@ -221,6 +221,57 @@ describe('buildLinePoints — GT-150 electrodeLayout', () => {
     }
   });
 
+  it('a short run of 12 points occupies electrodes 3..14, leaving the far end unmeasured', () => {
+    const pts = buildLinePoints({
+      vertices: [V_START, V_END],
+      pointCount: 12,
+      channelSet: ONE_CH,
+      parsedReadings: Array.from({ length: 12 }, () => [0.0]),
+      recordedAt: new Date(),
+      electrodeLayout: GT150,
+    });
+    expect(pts).toHaveLength(12);
+    // Point 1 still at electrode 3 — 2 spacings from the cable start.
+    expect(pts[0].lon).toBeCloseTo(eastLon(2 * POINT_SPACING_M), 4);
+    // Point 12 at electrode 14 — 13 spacings from the cable start.
+    expect(pts[11].lon).toBeCloseTo(eastLon(13 * POINT_SPACING_M), 4);
+    // Spacing stays one electrode per point.
+    for (let i = 1; i < pts.length; i++) {
+      expect(polylineLengthM([pts[i - 1], pts[i]])).toBeCloseTo(POINT_SPACING_M, 1);
+    }
+    // The last ~8 electrodes of the cable carry no point.
+    const lastDistFromStart = polylineLengthM([V_START, pts[11]]);
+    expect(polylineLengthM([V_START, V_END]) - lastDistFromStart).toBeGreaterThan(20);
+  });
+
+  it('offsetM is measured from point 1, not from the cable start', () => {
+    const pts = buildLinePoints({
+      vertices: [V_START, V_END],
+      pointCount: 12,
+      channelSet: ONE_CH,
+      parsedReadings: Array.from({ length: 12 }, () => [0.0]),
+      recordedAt: new Date(),
+      electrodeLayout: GT150,
+    });
+    expect(pts[0].offsetM).toBe(0);
+    expect(pts[1].offsetM).toBeCloseTo(POINT_SPACING_M, 1);
+    expect(pts[11].offsetM).toBeCloseTo(11 * POINT_SPACING_M, 1);
+  });
+
+  it('more points than the active zone falls back to a uniform spread', () => {
+    const pts = buildLinePoints({
+      vertices: [V_START, V_END],
+      pointCount: 20,                 // > 18 active — layout cannot be trusted
+      channelSet: ONE_CH,
+      parsedReadings: Array.from({ length: 20 }, () => [0.0]),
+      recordedAt: new Date(),
+      electrodeLayout: GT150,
+    });
+    expect(pts).toHaveLength(20);
+    expect(pts[0].lon).toBeCloseTo(V_START.lon, 6);
+    expect(pts[19].lon).toBeCloseTo(V_END.lon, 6);
+  });
+
   it('without electrodeLayout points are uniformly distributed (cable start to end)', () => {
     // Verify that removing the layout changes point 1's position — confirms the layout is load-bearing.
     const withLayout    = build();

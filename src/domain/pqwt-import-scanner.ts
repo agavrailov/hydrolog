@@ -6,8 +6,8 @@ export interface PqwtLineCandidate {
   deviceLineLabel: string;         // "1", "10" — from the CSV's L column (matches folder without the "L" prefix by convention, but not enforced)
   csvFile: File;
   csvText: string;
-  rawBmp?: File;                   // <label>_Profile_<label>.bmp when present
-  processedBmp?: File;             // <label>_Profile_<label>_Processed.bmp when present
+  rawBmp?: File;                   // <label>_Profile_<label>.bmp or .png when present
+  processedBmp?: File;             // <label>_Profile_<label>_Processed.bmp or .png when present
 }
 
 export interface PqwtImportScan {
@@ -17,8 +17,9 @@ export interface PqwtImportScan {
 
 const MODE_RE = /^(\d+)M$/;
 const CSV_RE = /\.csv$/i;
-const BMP_RE = /\.bmp$/i;
-const PROCESSED_RE = /_Processed\.bmp$/i;
+// Older exports write BMP screens, newer ones PNG.
+const SCREEN_RE = /\.(bmp|png)$/i;
+const PROCESSED_RE = /_Processed\.(bmp|png)$/i;
 
 async function listChildren(dir: FileSystemDirectoryHandle): Promise<{ name: string; handle: FileSystemHandle }[]> {
   const out: { name: string; handle: FileSystemHandle }[] = [];
@@ -66,7 +67,7 @@ export async function scanPqwtImportRoot(root: FileSystemDirectoryHandle): Promi
       let processedBmp: File | undefined;
       for (const f of files) {
         if (f.handle.kind !== 'file') continue;
-        if (!BMP_RE.test(f.name)) continue;
+        if (!SCREEN_RE.test(f.name)) continue;
         const blob = await readBlob(lineDir, f.name);
         const file = blob instanceof File ? blob : new File([blob], f.name);
         if (PROCESSED_RE.test(f.name)) processedBmp = file;

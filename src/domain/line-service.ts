@@ -1,11 +1,13 @@
 import type { Line, Vertex, Point } from './types';
 import { newId } from '../util/id';
-import { writeJson, fileExists } from '../storage/atomic';
+import { writeJson, writeBlob, readBlob, fileExists } from '../storage/atomic';
 import { getOrCreatePath, getPath, lineFolderName } from '../storage/paths';
 import { getRoot } from '../storage/fs';
 import { getDb } from '../cache/db';
 import { generateLineLabel } from './line-code';
 import { polylineLengthM } from './enu';
+import { repositionPoints } from './line-points';
+import { ELECTRODE_LAYOUT } from './device-config';
 import { defaultChannelSetSnapshot } from './channel-set-defaults';
 
 export { defaultChannelSetSnapshot };
@@ -87,6 +89,17 @@ export async function createLine(
   const { segments } = await surveyFolderPath(surveyId);
   const linesDir = await getOrCreatePath(root, segments);
   const lineDir = await getOrCreatePath(linesDir, [lineFolderName(label)]);
+  // A deleted line leaves its folder behind; its anomalies are not this line's.
+  if (await fileExists(lineDir, 'interpretation.json')) {
+    const tombs = await getOrCreatePath(root, ['_tombstones', 'lines']);
+    const stamp = now.toISOString().replace(/[:.]/g, '-');
+    await writeBlob(
+      tombs,
+      `${lineFolderName(label)}_${stamp}.interpretation.json`,
+      await readBlob(lineDir, 'interpretation.json'),
+    );
+    await lineDir.removeEntry('interpretation.json');
+  }
   await writeJson(lineDir, 'line.json', line);
   await writeJson(lineDir, 'vertices.geojson', verticesToGeoJson(input.vertices));
 
@@ -122,6 +135,11 @@ export async function updateLine(id: string, patch: LineUpdateInput): Promise<Li
     vertices: nextVertices,
     lengthM: polylineLengthM(nextVertices),
   };
+  if (patch.vertices) {
+    // Points are derived from the vertices, so they follow every geometry change.
+    const layout = ELECTRODE_LAYOUT[next.channelSetSnapshot.deviceModel];
+    next.points = repositionPoints(next.points, nextVertices, layout);
+  }
 
   const svRow = await db.surveys.get(row.surveyId);
   if (!svRow) throw new Error(`orphan line — survey missing`);

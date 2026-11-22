@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMockRoot } from '../test/mock-fs';
@@ -75,6 +75,36 @@ describe('<ImportScreen />', () => {
     expect(lines[0].json.label).toBe('L1');
     expect(lines[0].json.deviceStartPointIndex).toBe(80);
     expect(lines[0].json.status).toBe('complete');
+  });
+
+  it('lists and imports the same folder from both modes', async () => {
+    const { sv } = await seedSurvey();
+    const dir = await getOrCreatePath(pickedRoot, ['100M', 'L1']);
+    await writeBlob(dir, '100M_L1.csv', new TextEncoder().encode(PQWT_L1_MINIMAL_CSV));
+    const consoleError = vi.spyOn(console, 'error');
+    render(<ImportScreen surveyId={sv.id} onDone={() => {}} onCancel={() => {}} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: /избери папка/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /стартирай импорт/i }));
+    await waitFor(() => expect(screen.getAllByText(/импортирано/i)).toHaveLength(2));
+
+    expect(await getDb().lines.count()).toBe(2);
+    expect(consoleError.mock.calls.flat().join(' ')).not.toMatch(/same key/);
+    consoleError.mockRestore();
+  });
+
+  it('reports screens added to a line that was already imported', async () => {
+    const { sv } = await seedSurvey();
+    const { importPqwtAsNewLine } = await import('../domain/pqwt-import-service');
+    const { scanPqwtImportRoot } = await import('../domain/pqwt-import-scanner');
+    const [candidate] = (await scanPqwtImportRoot(pickedRoot)).candidates;
+    await importPqwtAsNewLine({ surveyId: sv.id, candidate: { ...candidate, rawBmp: undefined } });
+
+    render(<ImportScreen surveyId={sv.id} onDone={() => {}} onCancel={() => {}} />);
+    await userEvent.click(await screen.findByRole('button', { name: /избери папка/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /стартирай импорт/i }));
+
+    expect(await screen.findByText(/добавени снимки: 1/i)).toBeInTheDocument();
   });
 
   it('rejects a second import of the same line', async () => {

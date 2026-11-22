@@ -1,5 +1,5 @@
 import type { ScanResult } from '../storage/scanner';
-import { getDb, SiteRow, SurveyRow, LineRow, MediaRow, OutcomeRow } from './db';
+import { getDb, SiteRow, SurveyRow, LineRow, MediaRow, OutcomeRow, InterpretationRow } from './db';
 import { isoNow } from '../util/time';
 
 export async function rebuildCache(scan: ScanResult): Promise<{
@@ -15,6 +15,7 @@ export async function rebuildCache(scan: ScanResult): Promise<{
   const lineRows: LineRow[] = [];
   const mediaRows: MediaRow[] = [];
   const outcomeRows: OutcomeRow[] = [];
+  const interpretations = new Map<string, InterpretationRow>();   // by line id
 
   for (const s of scan.sites) {
     siteRows.push({ id: s.site.id, code: s.site.code, folderName: s.folderName, json: s.site });
@@ -25,6 +26,11 @@ export async function rebuildCache(scan: ScanResult): Promise<{
           id: ln.line.id, surveyId: sv.survey.id, folderName: ln.folderName,
           hasDeviceFiles: ln.hasDeviceFiles, json: ln.line,
         });
+        if (ln.interpretation) {
+          interpretations.set(ln.line.id, {
+            id: ln.interpretation.id, lineId: ln.line.id, json: ln.interpretation,
+          });
+        }
         for (const m of ln.deviceMedia) {
           mediaRows.push({
             id: m.id, linkedKind: m.linkedTo.kind, linkedId: m.linkedTo.id,
@@ -38,8 +44,14 @@ export async function rebuildCache(scan: ScanResult): Promise<{
     }
   }
 
-  await db.transaction('rw', ['sites', 'surveys', 'lines', 'outcomes', 'media', 'meta'], async () => {
+  await db.transaction('rw', ['sites', 'surveys', 'lines', 'outcomes', 'media', 'interpretations', 'meta'], async () => {
+    // The UI is usable during a background scan: an anomaly saved after the scan
+    // started is newer than what the scan read.
+    for (const row of await db.interpretations.toArray()) {
+      if (new Date(row.json.updatedAt) > scan.startedAt) interpretations.set(row.lineId, row);
+    }
     await Promise.all([
+      db.interpretations.clear(),
       db.sites.clear(), db.surveys.clear(), db.lines.clear(),
       db.outcomes.clear(), db.media.clear(),
     ]);
@@ -49,6 +61,7 @@ export async function rebuildCache(scan: ScanResult): Promise<{
       db.lines.bulkPut(lineRows),
       db.media.bulkPut(mediaRows),
       db.outcomes.bulkPut(outcomeRows),
+      db.interpretations.bulkPut([...interpretations.values()]),
     ]);
     await db.meta.put({ key: 'schemaVersion', value: scan.schemaVersion });
     await db.meta.put({ key: 'lastScanCompletedAt', value: isoNow() });

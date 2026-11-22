@@ -11,11 +11,10 @@ interface Props {
   surveyId: string;
   onEdit: () => void;
   onImport: () => void;
-  onNewLine: () => void;
   onOpenLine: (lineId: string) => void;
 }
 
-export function SurveyDetail({ surveyId, onEdit, onImport, onNewLine, onOpenLine }: Props) {
+export function SurveyDetail({ surveyId, onEdit, onImport, onOpenLine }: Props) {
   const row = useSurvey(surveyId);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,14 +90,6 @@ export function SurveyDetail({ surveyId, onEdit, onImport, onNewLine, onOpenLine
 
       <div className="section-heading">
         <h2 style={{ margin: 0 }}>{l.linesHeading}</h2>
-        <button
-          className="btn-primary"
-          onClick={onNewLine}
-          disabled={busy}
-          style={{ fontSize: '0.9rem', padding: '0 var(--space-4)', height: 40, minHeight: 'unset' }}
-        >
-          + {labels.line.new}
-        </button>
       </div>
       <LinesList surveyId={surveyId} onOpen={onOpenLine} />
     </section>

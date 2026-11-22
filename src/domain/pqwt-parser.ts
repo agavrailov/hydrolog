@@ -85,6 +85,10 @@ export function parsePqwtCsv(text: string): ParsedPqwtCsv {
     readings.push(values);
   }
 
+  if (readings.length === 0) {
+    throw new Error('parsePqwtCsv: no data rows');
+  }
+
   return {
     deviceLineLabel,
     startN,

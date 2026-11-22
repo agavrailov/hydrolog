@@ -9,6 +9,7 @@ interface Row {
   candidate: PqwtLineCandidate;
   status: RowStatus;
   message?: string;
+  imagesAdded?: number;
 }
 
 interface Props {
@@ -57,8 +58,8 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
     for (let i = 0; i < rows.length; i++) {
       setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: 'importing' } : r));
       try {
-        await importPqwtAsNewLine({ surveyId, candidate: rows[i].candidate });
-        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: 'ok' } : r));
+        const { imagesAdded } = await importPqwtAsNewLine({ surveyId, candidate: rows[i].candidate });
+        setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: 'ok', imagesAdded } : r));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         setRows((prev) => prev.map((r, idx) => idx === i ? { ...r, status: 'error', message: msg } : r));
@@ -102,14 +103,14 @@ export function ImportScreen({ surveyId, onDone, onCancel }: Props) {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.candidate.folderName}>
+                  <tr key={`${row.candidate.depthRangeM}/${row.candidate.folderName}`}>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{row.candidate.folderName}</td>
                     <td>{row.candidate.depthRangeM}M</td>
                     <td style={{ textAlign: 'right' }}>{pointCount(row.candidate)}</td>
                     <td>{bmpBadge(row.candidate)}</td>
                     <td>
                       {row.status === 'importing' && <span style={{ color: 'var(--color-secondary)' }}>{l.importing}</span>}
-                      {row.status === 'ok' && <span style={{ color: 'var(--color-success)' }}>✓ {l.importedOk}</span>}
+                      {row.status === 'ok' && <span style={{ color: 'var(--color-success)' }}>✓ {row.imagesAdded ? `${l.imagesAdded}: ${row.imagesAdded}` : l.importedOk}</span>}
                       {row.status === 'error' && <span style={{ color: 'var(--color-danger)' }}>{l.importedFail}: {row.message}</span>}
                     </td>
                   </tr>

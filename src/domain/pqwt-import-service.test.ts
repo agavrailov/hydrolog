@@ -2,13 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createMockRoot } from '../test/mock-fs';
 import { setRoot, clearRoot } from '../storage/fs';
 import { getDb, resetDb } from '../cache/db';
-import { readBlob, fileExists } from '../storage/atomic';
+import { readBlob, writeBlob, fileExists } from '../storage/atomic';
+import { scanRoot } from '../storage/scanner';
+import { rebuildCache } from '../cache/rebuild';
 import { getPath } from '../storage/paths';
 import { PQWT_L1_MINIMAL_CSV } from '../test/fixtures-pqwt';
 import { createSite } from './site-service';
 import { createSurvey } from './survey-service';
 import { createLine } from './line-service';
-import { importPqwtIntoLine, type ImportInto } from './pqwt-import-service';
+import { importPqwtIntoLine, importPqwtAsNewLine, type ImportInto } from './pqwt-import-service';
 import type { Vertex, Line } from './types';
 
 let root: FileSystemDirectoryHandle;
@@ -150,5 +152,178 @@ describe('importPqwtIntoLine — error paths (§7.5)', () => {
       targetLineId: line.id,
       candidate: mkCandidate(PQWT_L1_MINIMAL_CSV),
     })).rejects.toThrow(/already been attached/i);
+  });
+});
+
+describe('importPqwtAsNewLine', () => {
+  async function seedSurvey() {
+    const site = await createSite({
+      name: 'X', settlement: 'x', municipality: 'x', region: 'Софийска',
+      centroid: { lat: 0, lon: 0 }, accessNotes: '', landUse: '',
+      status: 'surveyed', tags: [],
+    });
+    return createSurvey(site.id, {
+      startedAt: new Date(), timezone: 'Europe/Sofia', operator: 'Anton',
+      deviceModel: 'GT-150', precipLast48h: 'none', qualityFlag: 'good',
+    });
+  }
+  const run = (surveyId: string, folder: string, depth: number, csv = PQWT_L1_MINIMAL_CSV) =>
+    importPqwtAsNewLine({ surveyId, candidate: mkCandidate(csv, folder, depth) });
+  const linesOf = async (surveyId: string) =>
+    (await getDb().lines.where('surveyId').equals(surveyId).toArray())
+      .map((r) => r.json)
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+  it.each([
+    [100, 150, '110-150M'],
+    [150, 100, '110-100M'],
+  ])('imports the same folder in both modes (%sM, then %sM)', async (first, second, suffixed) => {
+    const sv = await seedSurvey();
+    await run(sv.id, '110', first);
+    await run(sv.id, '110', second);
+
+    const lines = await linesOf(sv.id);
+    expect(lines.map((l) => l.label)).toEqual(['110', suffixed]);
+    expect(lines.map((l) => Math.round(l.channelSetSnapshot.channels.at(-1)!.pseudoDepthM!)))
+      .toEqual([first, second]);
+  });
+
+  it('rejects a repeat of either mode once both are imported', async () => {
+    const sv = await seedSurvey();
+    await run(sv.id, '110', 100);
+    await run(sv.id, '110', 150);
+
+    await expect(run(sv.id, '110', 100)).rejects.toThrow('Линия 110 (100M) вече е импортирана');
+    await expect(run(sv.id, '110', 150)).rejects.toThrow('Линия 110 (150M) вече е импортирана');
+    expect(await linesOf(sv.id)).toHaveLength(2);
+  });
+
+  it.each([
+    ['a bad header', 'broken'],
+    ['a header with no data rows', PQWT_L1_MINIMAL_CSV.split('\r\n')[0] + '\r\n'],
+  ])('creates nothing for a CSV with %s', async (_name, csv) => {
+    const sv = await seedSurvey();
+    await expect(run(sv.id, '110', 150, csv)).rejects.toThrow();
+
+    expect(await linesOf(sv.id)).toHaveLength(0);
+    const site = (await getDb().sites.toArray())[0];
+    const svRow = (await getDb().surveys.get(sv.id))!;
+    expect(await getPath(root, ['sites', site.folderName, 'surveys', svRow.folderName, 'lines'])).toBeNull();
+  });
+
+  it('completes an empty draft left by a failed import instead of inventing a name', async () => {
+    const sv = await seedSurvey();
+    const draft = await createLine(sv.id, {
+      label: '110', pointCount: 18, spacingM: 2.5,
+      mode: 'multi-frequency', dipoleOrientation: 'inline', vertices: [],
+    });
+    await run(sv.id, '110', 150);
+
+    const lines = await linesOf(sv.id);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ id: draft.id, label: '110', status: 'complete' });
+  });
+
+  it('refuses rather than inventing a name when both names are taken', async () => {
+    const sv = await seedSurvey();
+    const at = { lat: 42, lon: 23, electrodeIndex: 1 } as Vertex;
+    for (const label of ['110', '110-150M']) {
+      await createLine(sv.id, {
+        label, pointCount: 18, spacingM: 2.5,
+        mode: 'multi-frequency', dipoleOrientation: 'inline', vertices: [at],
+      });
+    }
+    await expect(run(sv.id, '110', 150)).rejects.toThrow(/заети/);
+    expect(await linesOf(sv.id)).toHaveLength(2);
+  });
+});
+
+describe('importPqwtAsNewLine — screens for a line imported without them', () => {
+  const png = (name: string, byte = 1) => new File([new Uint8Array([0x89, 0x50, byte])], name);
+  const RAW = '150M_Profile_L1.png';
+  const PROCESSED = '150M_Profile_L1_Processed.png';
+
+  async function importedWithoutScreens() {
+    const { sv } = await seedLine();          // occupies L1
+    const bare = { ...mkCandidate(PQWT_L1_MINIMAL_CSV, 'L7'), rawBmp: undefined, processedBmp: undefined };
+    const { lineId } = await importPqwtAsNewLine({ surveyId: sv.id, candidate: bare });
+    const svRow = (await getDb().surveys.get(sv.id))!;
+    const site = (await getDb().sites.get(svRow.siteId))!;
+    const dir = (await getPath(root, ['sites', site.folderName, 'surveys', svRow.folderName, 'lines', 'L7']))!;
+    const files = (await getPath(dir, ['device-files']))!;
+    const again = (extra: object) => importPqwtAsNewLine({ surveyId: sv.id, candidate: { ...bare, ...extra } });
+    const screens = async () => (await getDb().media.where('linkedId').equals(lineId).toArray())
+      .map((m) => m.storagePath.split('/').pop());
+    return { lineId, dir, files, again, screens };
+  }
+
+  it('adds both screens, processed last, without touching the line', async () => {
+    const t = await importedWithoutScreens();
+    const before = await (await readBlob(t.dir, 'line.json')).text();
+
+    const res = await t.again({ rawBmp: png(RAW), processedBmp: png(PROCESSED) });
+
+    expect(res).toMatchObject({ lineId: t.lineId, imagesAdded: 2 });
+    expect(await t.screens()).toEqual([RAW, PROCESSED]);
+    expect(await (await readBlob(t.dir, 'line.json')).text()).toBe(before);
+  });
+
+  it('keeps the CSV in the manifest and adds the screens to it', async () => {
+    const t = await importedWithoutScreens();
+    const before = await (await readBlob(t.files, 'sha256.txt')).text();
+    await t.again({ rawBmp: png(RAW), processedBmp: png(PROCESSED) });
+
+    const after = await (await readBlob(t.files, 'sha256.txt')).text();
+    expect(after.startsWith(before)).toBe(true);
+    expect(after.trim().split('\n').map((l) => l.split('  ')[1]))
+      .toEqual(['150M_L7.csv', RAW, PROCESSED]);
+  });
+
+  it('survives a rebuild of the cache from the folder', async () => {
+    const t = await importedWithoutScreens();
+    await t.again({ rawBmp: png(RAW), processedBmp: png(PROCESSED) });
+    await resetDb();
+    await rebuildCache(await scanRoot(root));
+
+    expect(await t.screens()).toEqual([RAW, PROCESSED]);
+  });
+
+  it('adds only the screen that is missing', async () => {
+    const t = await importedWithoutScreens();
+    await t.again({ rawBmp: png(RAW) });
+    const res = await t.again({ rawBmp: png(RAW), processedBmp: png(PROCESSED) });
+
+    expect(res.imagesAdded).toBe(1);
+    expect(await t.screens()).toEqual([RAW, PROCESSED]);
+  });
+
+  it('reports a duplicate when nothing is missing', async () => {
+    const t = await importedWithoutScreens();
+    await t.again({ rawBmp: png(RAW) });
+    await expect(t.again({ rawBmp: png(RAW) })).rejects.toThrow(/вече е импортирана/);
+    expect(await t.screens()).toEqual([RAW]);
+  });
+
+  it('does not add a PNG twin of a screen already stored as BMP', async () => {
+    const t = await importedWithoutScreens();
+    await t.again({ rawBmp: png('150M_Profile_L1.bmp') });
+    await expect(t.again({ rawBmp: png(RAW) })).rejects.toThrow(/вече е импортирана/);
+    expect(await t.screens()).toEqual(['150M_Profile_L1.bmp']);
+  });
+
+  it('never attaches screens from a different measurement with the same code', async () => {
+    const t = await importedWithoutScreens();
+    const csvText = PQWT_L1_MINIMAL_CSV + ' ';
+    await expect(t.again({
+      csvText, csvFile: new File([csvText], '150M_L7.csv'), rawBmp: png(RAW),
+    })).rejects.toThrow(/различни данни/);
+    expect(await t.screens()).toEqual([]);
+  });
+
+  it('never overwrites a stored file that has different bytes', async () => {
+    const t = await importedWithoutScreens();
+    await writeBlob(t.files, RAW, new Uint8Array([9, 9]));
+    await expect(t.again({ rawBmp: png(RAW) })).rejects.toThrow(/друго съдържание/);
+    expect([...new Uint8Array(await (await readBlob(t.files, RAW)).arrayBuffer())]).toEqual([9, 9]);
   });
 });

@@ -1,6 +1,6 @@
 import type { Interpretation, Anomaly, AnomalyType } from './types';
 import { newId } from '../util/id';
-import { writeJson, readJson } from '../storage/atomic';
+import { writeJson, readJson, fileExists } from '../storage/atomic';
 import { getPath } from '../storage/paths';
 import { getRoot } from '../storage/fs';
 import { getDb } from '../cache/db';
@@ -32,11 +32,9 @@ async function resolveLineDir(lineId: string): Promise<FileSystemDirectoryHandle
 }
 
 async function loadFromFsa(lineDir: FileSystemDirectoryHandle): Promise<Interpretation | null> {
-  try {
-    return await readJson<Interpretation>(lineDir, 'interpretation.json');
-  } catch {
-    return null;
-  }
+  if (!(await fileExists(lineDir, 'interpretation.json'))) return null;
+  // An unreadable file must throw: treating it as missing would overwrite it.
+  return readJson<Interpretation>(lineDir, 'interpretation.json');
 }
 
 async function persist(lineId: string, interp: Interpretation): Promise<void> {
@@ -48,15 +46,15 @@ async function persist(lineId: string, interp: Interpretation): Promise<void> {
 
 export async function getOrCreateInterpretation(lineId: string): Promise<Interpretation> {
   const db = getDb();
-  const existing = await db.interpretations.where('lineId').equals(lineId).first();
-  if (existing) return existing.json;
-
+  // Folder first: the cache may be older than what another device synced in.
   const dir = await resolveLineDir(lineId);
   const fromDisk = await loadFromFsa(dir);
   if (fromDisk) {
     await db.interpretations.put({ id: fromDisk.id, lineId, json: fromDisk });
     return fromDisk;
   }
+  const existing = await db.interpretations.where('lineId').equals(lineId).first();
+  if (existing) return existing.json;
 
   const now = new Date();
   const fresh: Interpretation = {

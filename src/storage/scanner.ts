@@ -10,6 +10,7 @@ export interface LineScan {
   hasDeviceFiles: boolean;
   mediaFiles: string[];
   deviceMedia: MediaAsset[];
+  interpretation?: Interpretation;   // lines/<line>/interpretation.json
 }
 
 export interface SurveyScan {
@@ -29,6 +30,7 @@ export interface SiteScan {
 
 export interface ScanResult {
   schemaVersion: string;
+  startedAt: Date;
   sites: SiteScan[];
 }
 
@@ -106,8 +108,11 @@ async function scanLine(
     ),
   ]);
   const deviceMedia = deviceMediaRaw.filter((m): m is MediaAsset => !!m);
+  const interpretation = allLineFiles.includes('interpretation.json')
+    ? await optionalJson<Interpretation>(lnDir, 'interpretation.json')
+    : undefined;
 
-  return { line, folderName: lnFolderName, hasDeviceFiles, mediaFiles, deviceMedia };
+  return { line, folderName: lnFolderName, hasDeviceFiles, mediaFiles, deviceMedia, interpretation };
 }
 
 async function scanSurvey(
@@ -175,15 +180,16 @@ async function scanSite(
 }
 
 export async function scanRoot(root: FileSystemDirectoryHandle): Promise<ScanResult> {
+  const startedAt = new Date();
   const [schemaFile, sitesRoot] = await Promise.all([
     optionalJson<{ version: string }>(root, '_schema.json'),
     getPath(root, ['sites']),
   ]);
   const schemaVersion = schemaFile?.version ?? 'unknown';
-  if (!sitesRoot) return { schemaVersion, sites: [] };
+  if (!sitesRoot) return { schemaVersion, startedAt, sites: [] };
 
   const siteDirs = await listDirs(sitesRoot);
   const sites = (await Promise.all(siteDirs.map((n) => scanSite(sitesRoot, n)))).filter(notNull);
 
-  return { schemaVersion, sites };
+  return { schemaVersion, startedAt, sites };
 }

@@ -44,6 +44,18 @@ describe('scanPqwtImportRoot', () => {
     expect(c2.processedBmp).toBeUndefined();
   });
 
+  it.each(['png', 'PNG'])('picks up .%s screens as raw and processed', async (ext) => {
+    const root = createMockRoot();
+    const dir = await getOrCreatePath(root, ['100M', 'L201-2']);
+    await writeText(dir, '100M_L2012.csv', PQWT_L1_MINIMAL_CSV);
+    await writeBmp(dir, `100M_Profile_L2012.${ext}`);
+    await writeBmp(dir, `100M_Profile_L2012_Processed.${ext}`);
+
+    const [c] = (await scanPqwtImportRoot(root)).candidates;
+    expect(c.rawBmp?.name).toBe(`100M_Profile_L2012.${ext}`);
+    expect(c.processedBmp?.name).toBe(`100M_Profile_L2012_Processed.${ext}`);
+  });
+
   it('skips folders with no CSV', async () => {
     const root = createMockRoot();
     const mode = await getOrCreatePath(root, ['150M']);

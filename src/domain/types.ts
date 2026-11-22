@@ -135,7 +135,7 @@ export interface Line extends AuditFields {
   azimuthDeg?: number;
   azimuthSource?: 'derived-from-vertices' | 'compass' | 'manual';
   lengthM?: number;               // derived
-  point1AnchorMediaId?: string;   // MediaAsset id; mandatory before finalize
+  point1AnchorMediaId?: string;   // MediaAsset id; optional (track-geometry-design D11)
   dipoleOrientation: 'inline' | 'broadside';
   polarityConvention?: string;
   groundSlopePct?: number;

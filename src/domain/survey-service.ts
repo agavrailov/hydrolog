@@ -150,6 +150,10 @@ export async function finalizeSurvey(id: string): Promise<Survey> {
     );
   }
 
+  // The point-1 anchor photo is no longer required to finalize (track-geometry-design
+  // D11): a mandatory photo contradicts "zero field actions in the PWA". Geometry now
+  // comes from the passive GPS track, so there is nothing for the photo to anchor.
+
   const now = new Date();
   const finalized: Survey = {
     ...row.json,

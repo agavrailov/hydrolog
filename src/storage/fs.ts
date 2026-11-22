@@ -62,9 +62,22 @@ export async function hasPermission(
 }
 
 let currentRoot: FileSystemDirectoryHandle | null = null;
+const rootListeners = new Set<() => void>();
 
 export function setRoot(handle: FileSystemDirectoryHandle): void {
   currentRoot = handle;
+  rootListeners.forEach((notify) => notify());
+}
+
+/** The opened folder, or null while access is still pending. */
+export function peekRoot(): FileSystemDirectoryHandle | null {
+  return currentRoot;
+}
+
+/** Called whenever a folder is opened or closed (useSyncExternalStore contract). */
+export function subscribeRoot(listener: () => void): () => void {
+  rootListeners.add(listener);
+  return () => { rootListeners.delete(listener); };
 }
 
 export function getRoot(): FileSystemDirectoryHandle {
@@ -80,4 +93,5 @@ export function hasRoot(): boolean {
 
 export function clearRoot(): void {
   currentRoot = null;
+  rootListeners.forEach((notify) => notify());
 }

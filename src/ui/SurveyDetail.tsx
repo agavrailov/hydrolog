@@ -106,34 +106,33 @@ const expandIcon = (
   </svg>
 );
 
+// Loads the enlarged screens only when the lightbox is opened.
+function CardLightbox({ paths, label, onClose }: { paths: string[]; label: string; onClose: () => void }) {
+  const urls = useBmpUrls(paths);
+  if (urls.length === 0) return null;
+  const items: LightboxItem[] = urls.map((url, i) => ({ kind: 'image', url, alt: `${label} – снимка ${i + 1}` }));
+  return <ImageLightbox items={items} startIndex={0} onClose={onClose} />;
+}
+
 function LineCard({ row, onClick }: { row: LineRow; onClick: () => void }) {
   const media = useLineMedia(row.id);
   const screenPaths = (media ?? [])
     .filter((m) => m.json.kind === 'device-screen')
     .map((m) => m.storagePath);
-  const bmpUrls = useBmpUrls(screenPaths);
   const [lightboxStart, setLightboxStart] = useState<number | null>(null);
 
-  // Only originals — all except the last (processed) image, or all if only one
-  const originalUrls = bmpUrls.length > 1 ? bmpUrls.slice(0, -1) : bmpUrls;
-  const lightboxItems: LightboxItem[] = originalUrls.map((url, i) => ({
-    kind: 'image',
-    url,
-    alt: `${row.json.label} – снимка ${i + 1}`,
-  }));
-  const thumbUrl = originalUrls[0];
+  // Only originals — all except the last (processed) image, or all if only one.
+  // The card shows one thumbnail, so only that one is read up front.
+  const originalPaths = screenPaths.length > 1 ? screenPaths.slice(0, -1) : screenPaths;
+  const [thumbUrl] = useBmpUrls(originalPaths.slice(0, 1));
 
   const l = row.json;
   const statusLabel = labels.line.statusOptions[l.status as keyof typeof labels.line.statusOptions] ?? l.status;
 
   return (
     <>
-      {lightboxStart !== null && lightboxItems.length > 0 && (
-        <ImageLightbox
-          items={lightboxItems}
-          startIndex={lightboxStart}
-          onClose={() => setLightboxStart(null)}
-        />
+      {lightboxStart !== null && (
+        <CardLightbox paths={originalPaths} label={row.json.label} onClose={() => setLightboxStart(null)} />
       )}
       <div
         className={`card card--interactive line-card line-card--${l.status}`}
@@ -153,7 +152,7 @@ function LineCard({ row, onClick }: { row: LineRow; onClick: () => void }) {
               alt={l.label}
               style={{ display: 'block', width: '100%', borderRadius: 'var(--r-sm)', objectFit: 'cover' }}
             />
-            {lightboxItems.length > 0 && (
+            {originalPaths.length > 0 && (
               <button
                 onClick={(e) => { e.stopPropagation(); setLightboxStart(0); }}
                 title="Виж на цял екран"
